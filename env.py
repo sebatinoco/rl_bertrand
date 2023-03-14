@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from scipy.optimize import minimize, root, fsolve
+from scipy.optimize import minimize, fsolve
 import matplotlib.pyplot as plt
 from utils.get_rolling import get_rolling
 
@@ -10,14 +10,14 @@ class BertrandEnv(gym.Env):
 
   def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, a_0 = 0, a = None, mu = 0.25, c = 1, a_index = 1, convergence = 1000):
 
-    self.N = N # cantidad de agentes
-    self.k = k # periodos hacia atrás que agentes observan
-    self.m = m # cantidad de acciones
-    self.a_0 = a_0 # indice diferenciacion vertical por default
-    self.mu = mu # indice diferenciacion horizontal
-    self.c = c # costo marginal
-    self.a_index = a_index # indices de diferenciacion vertical
-    self.convergence = convergence # cantidad de steps para concluir convergencia
+    self.N = N # number of agents
+    self.k = k # past periods to observe
+    self.m = m # number of actions 
+    self.a_0 = a_0 # base vertical differentiation index
+    self.mu = mu # horizontal differentiation index
+    self.c = c # marginal cost
+    self.a_index = a_index # vertical differentiation indexes
+    self.convergence = convergence # number of steps to conclude convergence
 
     self.a = a
     if a is None:
@@ -27,14 +27,11 @@ class BertrandEnv(gym.Env):
     self.action_space = spaces.Discrete(m)
 
     # Monopoly Equilibrium Price
-    def monopoly_func(p):
-        return -(p[0] - self.c) * self.demand(p, 0)
-      
-    self.monopoly_price = minimize(monopoly_func, x0 = 0).x[0]
+    self.monopoly_price = minimize(self.monopoly, x0 = 0).x[0]
 
     # Nash Equilibrium Price
     nash_solution = fsolve(func = self.nash, x0 = [1.0] * N)
-    assert all(round(price, 3) == round(nash_solution[0], 3) for price in nash_solution), f"Nash price should be unique: {nash_solution}"
+    assert all(round(price, 4) == round(nash_solution[0], 4) for price in nash_solution), f"Nash price should be unique: {nash_solution}"
 
     self.nash_price = nash_solution[0]
     
@@ -49,6 +46,10 @@ class BertrandEnv(gym.Env):
     self.reward_list = []
 
   def nash(self, p):
+    
+    '''
+    Nash problem. Containes the derivatives of each agent with respecto its price.
+    '''
 
     #assert len(a) == len(c), "a must be equal size to c"
     assert len(self.a) == len(p), "a must be equal size to p"
@@ -68,27 +69,38 @@ class BertrandEnv(gym.Env):
       result.append(fn)
 
     return result
+  
+  def monopoly(self, p):
+    
+    '''
+    Monopoly maximization problem. 
+    '''
+    
+    return -(p[0] - self.c) * self.demand(p, 0)
 
   def obs_sample(self):
+    
     '''
-    Método que devuelve una muestra del espacio de observación.
+    Returns a sample of the observation space.
     '''
+    
     return list(self.observation_space.sample()[0])
 
   def _get_obs(self):
+    
     '''
-    Método que devuelve la observación actual, es decir, los k precios anteriores 
-    en formato de state (en vez de los precios puros, su representación en índice).
+    Returns the current observation (k past actions) in state format (index)
     '''
+    
     return str(self.history[-self.k:])
 
   def _get_info(self):
     pass
 
   def get_revenue(self, p):
+    
     '''
-    Método que recibe una lista de precios, 
-    devuelve una lista con los rewards asociados a cada agente.
+    Receives a list of prices, returns a list of rewards for each agent.
     '''
 
     r = [self.demand(p, agent) * (p[agent] - self.c) for agent in range(self.N)]
@@ -96,10 +108,11 @@ class BertrandEnv(gym.Env):
     return r
 
   def demand(self, p, agent):
+    
       '''
-      Retorna la cantidad vendida en función de la diferenciación vertical/horizontal y los precios.
-      p: Diccionario de precios ofrecidos por los agentes (dict)
-      agent: Agente a obtener la cantidad demandada (int)
+      Returns the sold quantity in function of the vertical and horizontal differentiation, as per the prices set.
+      p: Dictionary of prices offered by agents (dict)
+      agent: Agent to obtain the quantity sold.
       '''
 
       numerator = np.exp((self.a[agent] - p[agent]) / self.mu)
@@ -110,33 +123,33 @@ class BertrandEnv(gym.Env):
   def reset(self):
 
     '''
-    Método que resetea el environment. Devuelve un estado S_0 (vectores de precios) aleatorio.
+    Resets the environment. Returns a random state S_0 (vector of prices).
     '''
 
-    self.history = [] # lista de listas con las acciones elegidas para cada step
+    self.history = [] # list of lists with chosen actions per step
     sample_action = list(self.observation_space.sample()[0])
     self.history.append(sample_action)
 
-    self.convergence_count = 0 # reset contador convergencia
+    self.convergence_count = 0 # reset convergence_count
 
     return self._get_obs()
 
   def step(self, action_n: list):
 
     '''
-    Método que genera un step en el environment. 
-    Recibe una lista de acciones indexadas (una por cada agente).
-    Devuelve una tupla de (observation, reward, done, info)
-    action_n: lista con acciones de los agentes (list)
+    Generates a step on the environment.
+    Receives a list of indexed actions (one per agent).
+    Returns a tuple (observation, reward, done, info)
+    action_n: list with actions of the agents (list)
     '''
 
     if type(action_n) != list:
-      raise ValueError(f'Debes usar una lista con una acción por cada uno de los {self.N} agentes!')
+      raise ValueError(f'You must provide a list with actions for each of the {self.N} agents!')
 
     if len(action_n) != self.N:
-      raise ValueError(f'Método recibe una lista de largo {self.N}')
+      raise ValueError(f'Method receives a list of size {self.N}')
 
-    # terminar loop si precio se repite mas de convergence_count veces
+    # end loop if convergence_count > convergence
     if action_n == self.history[-1]:
       self.convergence_count += 1
     else:
@@ -145,10 +158,10 @@ class BertrandEnv(gym.Env):
 
     self.history.append(action_n)
 
-    # precios indexados
+    # indexed prices
     observation = self._get_obs()
 
-    # acciones a precios
+    # actions to prices
     self.prices = [self._action_to_price[agent][action_n[agent]] for agent in range(self.N)]
 
     reward = self.get_revenue(self.prices)
@@ -164,9 +177,9 @@ class BertrandEnv(gym.Env):
 
     plt.figure(figsize = (12, 6))
     for agent in range(history.shape[1]):
-      series = history[:, agent] # acciones del agente i
-      series = np.array([self._action_to_price[agent][action] for action in series]) # acciones a precios
-      rolling_mean = get_rolling(series, window_size) # media móvil
+      series = history[:, agent] # actions of agent i
+      series = np.array([self._action_to_price[agent][action] for action in series]) # actions to prices
+      rolling_mean = get_rolling(series, window_size) # moving average
       plt.plot(range(history.shape[0]), rolling_mean, label = f'Agent {agent}') # plot
     plt.xlabel('Steps')
     plt.ylabel('Price')

@@ -4,10 +4,10 @@ from utils.greedy_policy import greedy_policy
 def epsilon_greedy_policy(Qtable, state, epsilon, action_space):
 
   '''
-  Método que devuelve una acción según la política epsilon_greedy.
-  Qtable: Q-table del algoritmo Q-learning (list)
-  state: Estado observado (int?)
-  epsilon: Epsilon a computar epsilon_greedy
+  Retirms an action using epsilon_greedy policy.
+  Qtable: Q-table of Q-learning algorithm (list)
+  state: Observed state (str)
+  epsilon: Epsilon to compute epsilon_greedy policy.
   '''
 
   # Randomly generate a number between 0 and 1

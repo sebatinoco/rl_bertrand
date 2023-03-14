@@ -4,6 +4,10 @@ from utils.get_rolling import get_rolling
 
 def plot(env, plots_dir, exp_name, window_size = 1000):
 
+    '''
+    Plot the curves of the experiment using a fixed window_size.
+    '''
+
     history = np.array(env.history)
     plt.figure(figsize = (12, 6))
     for agent in range(history.shape[1]): # for each agent
