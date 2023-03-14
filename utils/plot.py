@@ -14,7 +14,7 @@ def plot(env, plots_dir, exp_name, window_size = 1000):
         plt.plot(range(history.shape[0]), rolling_mean, label = f'Agent {agent}') # plot curve
         
     plt.axhline(y = env.monopoly_price, color = 'r', linestyle = '--', label = 'Monopoly Price') # monopoly price
-    plt.axhline(y = env.nash_price, color = 'g', linestyle = '--', label = 'Monopoly Price') # nash price
+    plt.axhline(y = env.nash_price, color = 'g', linestyle = '--', label = 'Nash Price') # nash price
     plt.xlabel('Steps') # x axis label
     plt.ylabel('Price') # y axis label
     plt.title('Solving Bertrand Environment with Multi Agent Q-learning') # title

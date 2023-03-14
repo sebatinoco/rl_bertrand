@@ -36,21 +36,19 @@ class BertrandEnv(gym.Env):
     nash_solution = fsolve(func = self.nash, x0 = (1.0, 1.0))
     assert all(round(price, 3) == round(nash_solution[0], 3) for price in nash_solution), f"Nash price should be unique: {nash_solution}"
 
-    #for i in range(len(solution)):
-      #  print(f'p{i}: {solution[i]}')
-
     self.nash_price = nash_solution[0]
     
     print(f'Monopoly Price: {self.monopoly_price}')
     print(f'Nash Price: {self.nash_price}')
 
     price_diff = self.monopoly_price - self.nash_price
-
-    self._action_to_price = [{action: action * (price_diff + 2 * xi * price_diff)/(m - 1) for action in range(m)} 
-                            for agent in range(N)]
+    
+    self._action_to_price = np.linspace(self.nash_price - xi * (self.monopoly_price - self.nash_price), self.monopoly_price + xi * (self.monopoly_price - self.nash_price), self.m)
+    self._action_to_price = [{i: self._action_to_price[i] for i in range(len(self._action_to_price))} for agent in range(N)]
+    
+    print(self._action_to_price)
 
     self.reward_list = []
-
 
   def nash(self, p):
 

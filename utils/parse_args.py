@@ -22,7 +22,7 @@ def parse_args():
     
     # training arguments
     parser.add_argument('--episodes', type = int, default = 1, help = 'number of episodes of the experiment')
-    parser.add_argument('--n_steps', type = int, default = int(1e5), help = 'number of steps per episode')
+    parser.add_argument('--n_steps', type = int, default = int(1e6), help = 'number of steps per episode')
     parser.add_argument('--decay_rate', type = float, default = 5e-4, help = 'decay rate of exploration phase')
     parser.add_argument('--max_epsilon', type = float, default = 1.0, help = 'max epsilon of the agent')
     parser.add_argument('--min_epsilon', type = float, default = 0.0, help = 'min epsilon of the agent')
