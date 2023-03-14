@@ -8,7 +8,7 @@ from utils.get_rolling import get_rolling
 class BertrandEnv(gym.Env):
   metadata = {'render_modes': None}
 
-  def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, a_0 = 0, a = None, mu = 0.25, c = 1, a_index = 1, convergence = 100):
+  def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, a_0 = 0, a = None, mu = 0.25, c = 1, a_index = 1, convergence = 1000):
 
     self.N = N # cantidad de agentes
     self.k = k # periodos hacia atrás que agentes observan
@@ -33,7 +33,7 @@ class BertrandEnv(gym.Env):
     self.monopoly_price = minimize(monopoly_func, x0 = 0).x[0]
 
     # Nash Equilibrium Price
-    nash_solution = fsolve(func = self.nash, x0 = (1.0, 1.0))
+    nash_solution = fsolve(func = self.nash, x0 = [1.0] * N)
     assert all(round(price, 3) == round(nash_solution[0], 3) for price in nash_solution), f"Nash price should be unique: {nash_solution}"
 
     self.nash_price = nash_solution[0]
@@ -45,8 +45,6 @@ class BertrandEnv(gym.Env):
     
     self._action_to_price = np.linspace(self.nash_price - xi * (self.monopoly_price - self.nash_price), self.monopoly_price + xi * (self.monopoly_price - self.nash_price), self.m)
     self._action_to_price = [{i: self._action_to_price[i] for i in range(len(self._action_to_price))} for agent in range(N)]
-    
-    print(self._action_to_price)
 
     self.reward_list = []
 
