@@ -33,12 +33,8 @@ def train(env, agents, episodes, n_steps, lr, min_epsilon, max_epsilon, decay_ra
             state_idx = agents[idx]._obs_to_state[state]
             newstate_idx = agents[idx]._obs_to_state[new_state]
             Qtable_idx = agents[idx].Qtable
-            #agents[idx].Qtable[state_idx][action[idx]] += lr * (reward[idx] + gamma * np.max(Qtable[new_state, :]) - Qtable[state, action])
             Qtable_idx[state_idx][action[idx]] += lr * (reward[idx] + gamma * np.max(Qtable_idx[newstate_idx]) - Qtable_idx[state_idx][action[idx]])
             agents[idx].Qtable = Qtable_idx
-
-        # Update Q(s,a):= Q(s,a) + lr [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
-        #Qtable[state, action] = Qtable[state, action] + lr * (reward + gamma * np.max(Qtable[new_state, :]) - Qtable[state, action])
 
         # If done, finish the episode
         if done:

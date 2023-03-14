@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from scipy.optimize import minimize, root
+from scipy.optimize import minimize, root, fsolve
 import matplotlib.pyplot as plt
 from utils.get_rolling import get_rolling
 
@@ -29,27 +29,17 @@ class BertrandEnv(gym.Env):
     # Monopoly Equilibrium Price
     def monopoly_func(p):
         return -(p[0] - self.c) * self.demand(p, 0)
+      
+    self.monopoly_price = minimize(monopoly_func, x0 = 0).x[0]
 
     # Nash Equilibrium Price
-    def nash_func(p):
-        ''' Derivative for demand function '''
-        denominator = np.exp(self.a_0 / self.mu)
-        for i in range(self.N):
-            denominator += np.exp((self.a[i] - p[i]) / self.mu)
-        function_list = []
-        for i in range(self.N):
-            term = np.exp((self.a[i] - p[i]) / self.mu)
-            first_term = term / denominator
-            second_term = (np.exp((2 * (self.a[i] - p[i])) / self.mu) * (-self.c + p[i])) / ((denominator ** 2) * self.mu)
-            third_term = (term * (-self.c + p[i])) / (denominator * self.mu)
-            function_list.append((p[i] - self.c) * (first_term + second_term - third_term))
-        return function_list
+    nash_solution = fsolve(func = self.nash, x0 = (1.0, 1.0))
+    assert all(round(price, 3) == round(nash_solution[0], 3) for price in nash_solution), f"Nash price should be unique: {nash_solution}"
 
-    # Finding root of derivative for demand function
-    nash_sol = root(fun = nash_func, x0 = [2] * N)
-    self.nash_price = nash_sol.x[0]
+    #for i in range(len(solution)):
+      #  print(f'p{i}: {solution[i]}')
 
-    self.monopoly_price = minimize(monopoly_func, x0 = 0).x[0]
+    self.nash_price = nash_solution[0]
     
     print(f'Monopoly Price: {self.monopoly_price}')
     print(f'Nash Price: {self.nash_price}')
@@ -60,6 +50,28 @@ class BertrandEnv(gym.Env):
                             for agent in range(N)]
 
     self.reward_list = []
+
+
+  def nash(self, p):
+
+    #assert len(a) == len(c), "a must be equal size to c"
+    assert len(self.a) == len(p), "a must be equal size to p"
+    #assert len(c) == len(p), "c must be equal size to p"
+
+    sum_denominator = [np.exp((self.a[i] - p[i]) / self.mu) for i in range(len(p))]
+    sum_denominator.append(np.exp(self.a_0 / self.mu))
+    sum_denominator = sum(sum_denominator)
+
+    result = []
+    for i in range(len(p)):
+      first_term = np.exp((self.a[i] - p[i]) / self.mu) / sum_denominator
+      second_term = (np.exp((self.a[i] - p[i])/self.mu) * (p[i] - self.c)) / self.mu * sum_denominator
+      third_term = (p[i] - self.c) / self.mu
+
+      fn = first_term * (1 + second_term - third_term)
+      result.append(fn)
+
+    return result
 
   def obs_sample(self):
     '''

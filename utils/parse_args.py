@@ -32,6 +32,7 @@ def parse_args():
     # plot arguments
     parser.add_argument('--plots_dir', type = str, default = 'plots', help = 'folder dir to save plot results')
     parser.add_argument('--exp_name', type = str, default = 'bertrand', help = 'name of the experiment')
+    parser.add_argument('--window_size', type = int, default = 1000, help = 'window size of moving average')
     
     # consolidate args
     args = parser.parse_args()
