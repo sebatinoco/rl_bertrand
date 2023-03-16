@@ -11,6 +11,6 @@ Ejecutar este proyecto es simple, solo debes seguir los siguientes pasos:
 4. Instalar los paquetes necesarios para su ejecución: `pip install -r requirements.txt`
 5. Finalmente, para obtener los resultados presentados: `python run.py`
 
-No olvides revisar los parámetros disponibles en `utils.parse_args.py` para obtener más resultados!
+No olvides revisar los parámetros disponibles en `utils.parse_args.py` para obtener más resultados interesantes!
 
 Cualquier duda o comentario no dudes en escribirme a stinoco@fen.uchile.cl.
