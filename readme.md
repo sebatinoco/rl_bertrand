@@ -2,6 +2,12 @@
 
 Hola! Este es el repositorio del proyecto de tesis *Colusión Algorítmica en Contexto Inflacionario* a presentar para obtener el grado de Magíster de Ciencia de Datos de la Universidad de Chile. 
 
+# Abstract
+
+Hola!
+
+![Screenshot](plots/Bertrand/Bertrand_N-4_lr-0.5_k-1.png)
+
 # Instrucciones de ejecución
 
 Ejecutar este proyecto es simple, solo debes seguir los siguientes pasos:
