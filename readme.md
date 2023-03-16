@@ -4,7 +4,7 @@ Hola! Este es el repositorio del proyecto de tesis *Colusión Algorítmica en Co
 
 # Abstract
 
-Hola!
+Este proyecto tiene por objetivo añadir evidencia a la *Colusión Algorítmica*, fenómeno que ocurre cuando se usan algoritmos de Reinforcement Learning para el pricing en un mercado de oligopolio. 
 
 ![Screenshot](plots/Bertrand/Bertrand_N-4_lr-0.5_k-1.png)
 
@@ -19,4 +19,4 @@ Ejecutar este proyecto es simple, solo debes seguir los siguientes pasos:
 
 No olvides revisar los parámetros disponibles en `utils.parse_args.py` para obtener más resultados interesantes!
 
-Cualquier duda o comentario no dudes en escribirme a stinoco@fen.uchile.cl.
+*Cualquier duda o comentario no dudes en escribirme a stinoco@fen.uchile.cl.*
