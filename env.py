@@ -95,7 +95,7 @@ class BertrandEnv(gym.Env):
     return str(self.history[-self.k:])
 
   def _get_info(self):
-    pass
+    return {'convergence_count': self.convergence_count}
 
   def get_revenue(self, p):
     
@@ -167,7 +167,7 @@ class BertrandEnv(gym.Env):
     reward = self.get_revenue(self.prices)
     self.reward_list.append(reward)
 
-    info = None
+    info = self._get_info()
 
     return observation, reward, terminated, info
 
