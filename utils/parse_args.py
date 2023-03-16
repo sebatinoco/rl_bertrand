@@ -3,8 +3,6 @@ import argparse
 def parse_args():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type = int, default = 3380,
-        help = "seed of the experiment")
     
     # env arguments
     parser.add_argument('--env_name', type = str, default = 'BertrandDiff', help = 'environment name to run the experiment')
@@ -20,8 +18,7 @@ def parse_args():
     
     # agent arguments
     
-    
-    # training arguments
+    # trainer arguments
     parser.add_argument('--episodes', type = int, default = 1, help = 'number of episodes of the experiment')
     parser.add_argument('--n_steps', type = int, default = int(1e6), help = 'number of steps per episode')
     parser.add_argument('--decay_rate', type = float, default = 5e-4, help = 'decay rate of exploration phase')
@@ -29,6 +26,7 @@ def parse_args():
     parser.add_argument('--min_epsilon', type = float, default = 0.0, help = 'min epsilon of the agent')
     parser.add_argument('--lr', type = float, default = 0.05, help = 'learning rate of the agents')
     parser.add_argument('--gamma', type = float, default = 0.95, help = 'gamma coeff of the experiment')
+    parser.add_argument("--seed", type = int, default = 3380, help = "seed of the experiment")
     
     # plot arguments
     parser.add_argument('--plots_dir', type = str, default = 'plots', help = 'folder dir to save plot results')

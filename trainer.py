@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from tqdm import tqdm
 from utils.epsilon_greedy_policy import epsilon_greedy_policy
 
@@ -8,7 +9,7 @@ class Trainer():
     Class to train the agents. Contains the loop to train the agents and track the parameters.
     '''
     
-    def __init__(self, episodes, n_steps, lr, min_epsilon, max_epsilon, decay_rate, gamma):
+    def __init__(self, episodes, n_steps, lr, min_epsilon, max_epsilon, decay_rate, gamma, seed):
         self.episodes = episodes
         self.n_steps = n_steps
         self.lr = lr
@@ -16,8 +17,12 @@ class Trainer():
         self.max_epsilon = max_epsilon
         self.decay_rate = decay_rate
         self.gamma = gamma
+        self.seed = seed
     
     def train(self, env, agents, action_space):
+        
+        random.seed(self.seed)
+        
         for _ in range(self.episodes):
             state = env.reset()
 

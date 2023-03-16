@@ -8,7 +8,7 @@ from utils.plot_epsilon import plot_epsilon
 
 if __name__ == '__main__':
     
-    # consolidate train arguments
+    # consolidate experiment arguments
     args = parse_args()
     args = vars(args)
     
@@ -44,5 +44,3 @@ if __name__ == '__main__':
     # plot
     plot(env = env, **plot_args)
     plot_epsilon(epsilon_list = trainer.epsilon_list, env = env, **plot_args)
-
-    
