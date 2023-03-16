@@ -3,6 +3,11 @@ from tqdm import tqdm
 from utils.epsilon_greedy_policy import epsilon_greedy_policy
 
 class Trainer():
+    
+    '''
+    Class to train the agents. Contains the loop to train the agents and track the parameters.
+    '''
+    
     def __init__(self, episodes, n_steps, lr, min_epsilon, max_epsilon, decay_rate, gamma):
         self.episodes = episodes
         self.n_steps = n_steps

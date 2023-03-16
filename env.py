@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 from utils.get_rolling import get_rolling
 
 class BertrandEnv(gym.Env):
+  
+  '''
+  Environment representing the market dynamics. Contains the basic gym functions: step and reset.
+  '''
+  
   metadata = {'render_modes': None}
 
   def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, a_0 = 0, a = None, mu = 0.25, c = 1, a_index = 1, convergence = 1000):

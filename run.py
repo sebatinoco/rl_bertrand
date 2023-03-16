@@ -32,7 +32,7 @@ if __name__ == '__main__':
     
     # trainer
     trainer = Trainer(**trainer_args)
-    trainer.train(env= env, agents = agents, action_space = env.action_space.n)
+    trainer.train(env = env, agents = agents, action_space = env.action_space.n)
     
     # plot
     plot(env = env, **plot_args)
