@@ -4,7 +4,11 @@ Hola! Este es el repositorio del proyecto de tesis *Colusión Algorítmica en Co
 
 # Abstract
 
-Este proyecto tiene por objetivo añadir evidencia a la *Colusión Algorítmica*, fenómeno que ocurre cuando se usan algoritmos de Reinforcement Learning para el pricing en un mercado de oligopolio. El mercado es modelado a través del modelo de Bertrand, el cual intenta ilustrar la competencia a través de los precios y donde un menor precio siempre será preferido por los clientes. Si los agentes actuan de forma individual, lo anterior implica que el precio de equilibrio (Precio de Nash) se sitúe en niveles cercanos al costo por unidad de cada agente, pues siempre existirá un incentivo a reducir los precios para capturar un mayor nivel de demanda. ¿Es esto lo que ocurre en el siguiente gráfico?
+Este proyecto tiene por objetivo añadir evidencia a la *Colusión Algorítmica*, fenómeno que ocurre cuando se usan algoritmos de Reinforcement Learning para el pricing en un mercado de oligopolio. 
+
+El mercado es modelado a través del modelo de Bertrand, el cual intenta ilustrar la competencia a través de los precios y donde un menor precio siempre será preferido por los clientes. Si los agentes actuan de forma individual, lo anterior implica que el precio de equilibrio (Precio de Nash) se sitúe en niveles cercanos al costo por unidad de cada agente, pues siempre existirá un incentivo a reducir los precios para capturar un mayor nivel de demanda. 
+
+¿Es esto lo que ocurre en el siguiente gráfico?
 
 ![Screenshot](plots/Bertrand/Bertrand_N-4_lr-0.5_k-1.png)
 
