@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.get_rolling import get_rolling
 
-def plot(env, plots_dir, exp_name, window_size = 1000):
+def plot(env, plots_dir, env_name, exp_name, window_size = 1000):
 
     '''
     Plot the curves of the experiment using a fixed window_size.
@@ -24,4 +24,4 @@ def plot(env, plots_dir, exp_name, window_size = 1000):
     plt.title('Solving Bertrand Environment with Multi Agent Q-learning') # title
     plt.legend() # plot
         
-    plt.savefig(f'{plots_dir}/{exp_name}.png', transparent = False, bbox_inches = 'tight') # save figure
+    plt.savefig(f'{plots_dir}/{env_name}/{exp_name}.png', transparent = False, bbox_inches = 'tight') # save figure

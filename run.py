@@ -1,5 +1,5 @@
-from envs.bertrand import BertrandEnv
-from envs.bertrand_diff import BertrandDiffEnv
+from envs.Bertrand import BertrandEnv
+from envs.BertrandDiff import BertrandDiffEnv
 from agent import QLearning
 from utils.parse_args import parse_args
 from trainer import Trainer
@@ -13,7 +13,7 @@ if __name__ == '__main__':
     args = vars(args)
     
     # envs available
-    envs = {'bertrand': BertrandEnv, 'bertrand_diff': BertrandDiffEnv}
+    envs = {'Bertrand': BertrandEnv, 'BertrandDiff': BertrandDiffEnv}
     
     # chosen env
     env = envs[args['env_name']]

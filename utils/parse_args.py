@@ -7,7 +7,7 @@ def parse_args():
         help = "seed of the experiment")
     
     # env arguments
-    parser.add_argument('--env_name', type = str, default = 'bertrand_diff', help = 'environment name to run the experiment')
+    parser.add_argument('--env_name', type = str, default = 'BertrandDiff', help = 'environment name to run the experiment')
     parser.add_argument('--N', type = int, default = 2, help = 'number of agents')
     parser.add_argument('--k', type = int, default = 1, help = 'past periods observed by agents')
     parser.add_argument('--m', type = int, default = 10, help = 'amount of actions available to each agent')

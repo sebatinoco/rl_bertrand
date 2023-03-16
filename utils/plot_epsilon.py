@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.get_rolling import get_rolling
 
-def plot_epsilon(epsilon_list, env, plots_dir, exp_name, window_size = 1000):
+def plot_epsilon(epsilon_list, env, plots_dir, env_name, exp_name, window_size = 1000):
 
     '''
     Plot the curves of the experiment using a fixed window_size.
@@ -28,4 +28,4 @@ def plot_epsilon(epsilon_list, env, plots_dir, exp_name, window_size = 1000):
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax2.legend(lines + lines2, labels + labels2)
 
-    plt.savefig(f'{plots_dir}/{exp_name}_epsilon.png', transparent = False, bbox_inches = 'tight') # save figure
+    plt.savefig(f'{plots_dir}/{env_name}/{exp_name}_epsilon.png', transparent = False, bbox_inches = 'tight') # save figure
