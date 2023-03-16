@@ -8,7 +8,8 @@ from utils.get_rolling import get_rolling
 class BertrandDiffEnv(gym.Env):
   
   '''
-  Environment representing the market dynamics. Contains the basic gym functions: step and reset.
+  Environment representing the market dynamics of a canonical logit demand with vertical and horizontal differentiation.
+  Contains the basic gym functions: step and reset.
   '''
   
   metadata = {'render_modes': None}

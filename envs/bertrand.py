@@ -9,6 +9,11 @@ class BertrandEnv(gym.Env):
   metadata = {'render_modes': None}
 
   def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, A = 100, epsilon = 2, c = 1, convergence = 1000):
+    
+    '''
+    Environment representing the market dynamics of a linear demand, representing the basic idea of a bertrand competition.
+    Contains the basic gym functions: step and reset.
+    '''
 
     self.N = N # number of agents
     self.k = k # past periods to observe
