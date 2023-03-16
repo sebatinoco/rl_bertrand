@@ -1,4 +1,5 @@
-from env import BertrandEnv
+from envs.bertrand import BertrandEnv
+from envs.bertrand_diff import BertrandDiffEnv
 from agent import QLearning
 from utils.parse_args import parse_args
 from trainer import Trainer
@@ -11,8 +12,14 @@ if __name__ == '__main__':
     args = parse_args()
     args = vars(args)
     
+    # envs available
+    envs = {'bertrand': BertrandEnv, 'bertrand_diff': BertrandDiffEnv}
+    
+    # chosen env
+    env = envs[args['env_name']]
+    
     # arguments required by each class
-    env_arguments = BertrandEnv.__init__.__code__.co_varnames
+    env_arguments = env.__init__.__code__.co_varnames
     trainer_arguments = Trainer.__init__.__code__.co_varnames
     plot_arguments = plot.__code__.co_varnames
     
@@ -25,7 +32,7 @@ if __name__ == '__main__':
                 if arg_name in plot_arguments}
     
     # initialize environment
-    env = BertrandEnv(**env_args)
+    env = env(**env_args)
     
     # initialize agents
     agents = [QLearning(env = env) for agent in range(env.N)]

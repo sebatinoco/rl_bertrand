@@ -6,27 +6,17 @@ import matplotlib.pyplot as plt
 from utils.get_rolling import get_rolling
 
 class BertrandEnv(gym.Env):
-  
-  '''
-  Environment representing the market dynamics. Contains the basic gym functions: step and reset.
-  '''
-  
   metadata = {'render_modes': None}
 
-  def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, a_0 = 0, a = None, mu = 0.25, c = 1, a_index = 1, convergence = 1000):
+  def __init__(self, N = 2, k = 1, m = 10, xi = 0.1, A = 100, epsilon = 2, c = 1, convergence = 1000):
 
     self.N = N # number of agents
     self.k = k # past periods to observe
     self.m = m # number of actions 
-    self.a_0 = a_0 # base vertical differentiation index
-    self.mu = mu # horizontal differentiation index
+    self.A = A
+    self.epsilon = epsilon
     self.c = c # marginal cost
-    self.a_index = a_index # vertical differentiation indexes
     self.convergence = convergence # number of steps to conclude convergence
-
-    self.a = a
-    if a is None:
-      self.a = {agent: c + a_index for agent in range(N)}
 
     self.observation_space = spaces.Box(low = 0, high = m - 1, shape = (k, N), dtype = int)
     self.action_space = spaces.Discrete(m)
@@ -35,14 +25,12 @@ class BertrandEnv(gym.Env):
     self.monopoly_price = minimize(self.monopoly, x0 = 0).x[0]
 
     # Nash Equilibrium Price
-    nash_solution = fsolve(func = self.nash, x0 = [1.0] * N)
-    assert all(round(price, 4) == round(nash_solution[0], 4) for price in nash_solution), f"Nash price should be unique: {nash_solution}"
-
-    self.nash_price = nash_solution[0]
+    self.nash_price = c
     
     print(f'Monopoly Price: {self.monopoly_price}')
     print(f'Nash Price: {self.nash_price}')
 
+    # Actions
     price_diff = self.monopoly_price - self.nash_price
     
     self._action_to_price = np.linspace(self.nash_price - xi * (self.monopoly_price - self.nash_price), self.monopoly_price + xi * (self.monopoly_price - self.nash_price), self.m)
@@ -50,30 +38,10 @@ class BertrandEnv(gym.Env):
 
     self.reward_list = []
 
-  def nash(self, p):
+  def demand(self, p):
+    q = self.A - self.epsilon * p
     
-    '''
-    Nash problem. Containes the derivatives of each agent with respecto its price.
-    '''
-
-    #assert len(a) == len(c), "a must be equal size to c"
-    assert len(self.a) == len(p), "a must be equal size to p"
-    #assert len(c) == len(p), "c must be equal size to p"
-
-    sum_denominator = [np.exp((self.a[i] - p[i]) / self.mu) for i in range(len(p))]
-    sum_denominator.append(np.exp(self.a_0 / self.mu))
-    sum_denominator = sum(sum_denominator)
-
-    result = []
-    for i in range(len(p)):
-      first_term = np.exp((self.a[i] - p[i]) / self.mu) / sum_denominator
-      second_term = (np.exp((self.a[i] - p[i])/self.mu) * (p[i] - self.c)) / self.mu * sum_denominator
-      third_term = (p[i] - self.c) / self.mu
-
-      fn = first_term * (1 + second_term - third_term)
-      result.append(fn)
-
-    return result
+    return q
   
   def monopoly(self, p):
     
@@ -81,7 +49,7 @@ class BertrandEnv(gym.Env):
     Monopoly maximization problem. 
     '''
     
-    return -(p[0] - self.c) * self.demand(p, 0)
+    return -(p[0] - self.c) * self.demand(p)
 
   def obs_sample(self):
     
@@ -108,22 +76,13 @@ class BertrandEnv(gym.Env):
     Receives a list of prices, returns a list of rewards for each agent.
     '''
 
-    r = [self.demand(p, agent) * (p[agent] - self.c) for agent in range(self.N)]
+    min_price = min(p)
+    n_tie = p.count(min_price)
+    total_demand = self.demand(min_price)
+    
+    r = [total_demand / n_tie * (min_price - self.c) if p[agent] == min_price else 0 for agent in range(self.N)]
 
     return r
-
-  def demand(self, p, agent):
-    
-      '''
-      Returns the sold quantity in function of the vertical and horizontal differentiation, as per the prices set.
-      p: Dictionary of prices offered by agents (dict)
-      agent: Agent to obtain the quantity sold.
-      '''
-
-      numerator = np.exp((self.a[agent] - p[agent]) / self.mu)
-      denominator = sum([np.exp((self.a[agent] - p[agent])/self.mu) for agent in range(len(p))]) + np.exp(self.a_0 / self.mu)
-
-      return numerator / denominator
 
   def reset(self):
 
@@ -172,7 +131,7 @@ class BertrandEnv(gym.Env):
     reward = self.get_revenue(self.prices)
     self.reward_list.append(reward)
 
-    info = self._get_info()
+    info = None
 
     return observation, reward, terminated, info
 
