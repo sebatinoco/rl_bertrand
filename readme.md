@@ -2,7 +2,7 @@
 
 Hola! Este es el repositorio del proyecto de tesis *Colusión Algorítmica en Contexto Inflacionario* a presentar para obtener el grado de Magíster de Ciencia de Datos de la Universidad de Chile. 
 
-## Instrucciones de ejecución
+# Instrucciones de ejecución
 
 Ejecutar este proyecto es simple, solo debes seguir los siguientes pasos:
 1. Clonar este repositorio: `git clone https://github.com/sebatinoco/rl_bertrand`
