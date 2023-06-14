@@ -54,7 +54,7 @@ class BertrandDiffEnv(gym.Env):
   def nash(self, p):
     
     '''
-    Nash problem. Containes the derivatives of each agent with respecto its price.
+    Nash problem. Containes the derivatives of each agent with respect to its price.
     '''
 
     #assert len(a) == len(c), "a must be equal size to c"
@@ -98,7 +98,7 @@ class BertrandDiffEnv(gym.Env):
     Returns the current observation (k past actions) in state format (index)
     '''
     
-    return self.history[-self.k:]
+    return str(self.history[-self.k:])
 
   def _get_info(self):
     return {'convergence_count': self.convergence_count}

@@ -1,0 +1,7 @@
+env:
+  N: 4
+  k: 1
+
+trainer:
+  lr: 0.05
+  gamma: 0.99
