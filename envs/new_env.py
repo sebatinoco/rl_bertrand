@@ -1,13 +1,14 @@
 import numpy as np
 import gymnasium as gym
 from scipy.optimize import minimize, fsolve
+import torch
 
 import optuna
 from optuna.samplers import TPESampler
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 class BertrandEnv():
-    def __init__(self, N, k, rho, mu = 1, a = None, a_0 = 0, a_index = 1, c = 1):
+    def __init__(self, N, k, rho, mu = 1, a = None, a_0 = 0, a_index = 1, c = 1, v = 3):
         
         self.N = N # number of agents
         self.k = k # past periods to observe
@@ -16,6 +17,9 @@ class BertrandEnv():
         self.mu = mu # horizontal differentiation index
         self.a_index = a_index # vertical differentiation indexes
         self.c = c # marginal cost
+        self.v = v # length of past inflations to predict current inflation
+        
+        assert v >= k, 'v must be greater or equal than k'
 
         # vertical diff
         self.a = np.array(a)
@@ -26,8 +30,8 @@ class BertrandEnv():
         self.inflation_history = [] # inflation history
         self.prices_history = [] # prices history
         
-        self.prices_space = gym.spaces.Box(low = self.pN, high = self.pM, shape = (k, N), dtype = float) # prices space
-        self.inflation_space = gym.spaces.Box(low = 1.5, high = 3.5, shape = (k,), dtype = float) # inflation space
+        self.inflation_model = torch.jit.load('inflation/inflation_model.pt')
+        self.inflation_model.eval()
         
     def get_nash(self):
         def nash(p):
@@ -59,7 +63,7 @@ class BertrandEnv():
         #assert nash(nash_solution) == [0.0] * self.N, f'Nash price should be a root: {nash(nash_solution)}' # nash price is a root
         
         pN = nash_solution[0] # float
-        print(f'Nash Price: {pN:.2f}')
+        #print(f'Nash Price: {pN:.2f}')
         
         return pN
     
@@ -81,7 +85,7 @@ class BertrandEnv():
         
         pM = minimize(monopoly, x0 = x0).x[0] # float
         
-        print(f'Monopoly Price: {pM:.2f}')
+        #print(f'Monopoly Price: {pM:.2f}')
 
         return pM
     
@@ -121,9 +125,15 @@ class BertrandEnv():
         self.pN = self.get_nash() # get nash price
         self.pM = self.get_monopoly() # get monopoly price
         
-        inflation = self.get_inflation()
-        past_prices = self.prices_space.sample()
-        past_inflation = self.inflation_space.sample()
+        self.prices_space = gym.spaces.Box(low = self.pN, high = self.pM, shape = (self.k, self.N), dtype = float) # prices space
+        self.inflation_space = gym.spaces.Box(low = 1.5, high = 3.5, shape = (self.k,), dtype = float) # inflation space
+        
+        past_prices = self.prices_space.sample() # init prices
+        past_inflation = list(self.inflation_space.sample()) # init inflation
+        
+        self.inflation_history = past_inflation # store inflation
+        
+        inflation = self.get_inflation() # obtain inflation
         
         ob_t = (inflation, past_prices, past_inflation)
         
@@ -147,11 +157,16 @@ class BertrandEnv():
         
         inflation_t = 0
         if sample < self.rho:
-            inflation_t = 0.03 # inflation_model(INFLATION NOT NULL)
+            
+            with torch.no_grad():
+                inflation_values = np.array(self.inflation_history) # transform to array
+                inflation_values = inflation_values[inflation_values != 0][-self.v]
+                inflation_values = torch.tensor(inflation_values).reshape(1, -1, 1).float()
+                inflation_t = float(self.inflation_model(inflation_values).squeeze())
             
             self.c *= (1 + inflation_t) # adjust marginal cost
             
-            print('Calculating new equilibria...')
+            #print('Calculating new equilibria...')
             self.pN = self.get_nash() # get nash price
             self.pM = self.get_monopoly() # get monopoly price
             
