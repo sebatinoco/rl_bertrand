@@ -8,7 +8,7 @@ from optuna.samplers import TPESampler
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 class BertrandEnv():
-    def __init__(self, N, k, rho, mu = 1, a = None, a_0 = 0, a_index = 1, c = 1, v = 3):
+    def __init__(self, N, k, rho, mu = 1, a = None, a_0 = 0, a_index = 1, c = 1, v = 3, xi = 0.2):
         
         self.N = N # number of agents
         self.k = k # past periods to observe
@@ -18,6 +18,7 @@ class BertrandEnv():
         self.a_index = a_index # vertical differentiation indexes
         self.c = c # marginal cost
         self.v = v # length of past inflations to predict current inflation
+        self.xi = xi # price limit deflactor
         
         assert v >= k, 'v must be greater or equal than k'
 
@@ -29,6 +30,8 @@ class BertrandEnv():
         
         self.inflation_history = [] # inflation history
         self.prices_history = [] # prices history
+        self.nash_history = [] # nash prices history
+        self.monopoly_history = [] # monopoly prices history
         
         self.inflation_model = torch.jit.load('inflation/inflation_model.pt')
         self.inflation_model.eval()
@@ -59,11 +62,10 @@ class BertrandEnv():
         
         nash_solution = fsolve(nash, x0 = [1.0] * self.N)
         
-        assert all(round(price, 4) == round(nash_solution[0], 4) for price in nash_solution), f"Nash price should be unique: {nash_solution}" # all prices are the same
-        #assert nash(nash_solution) == [0.0] * self.N, f'Nash price should be a root: {nash(nash_solution)}' # nash price is a root
+        assert all(round(price, 4) == round(nash_solution[0], 4) for price in nash_solution), \
+        f"Nash price should be unique: {nash_solution}" # all prices are the same
         
         pN = nash_solution[0] # float
-        #print(f'Nash Price: {pN:.2f}')
         
         return pN
     
@@ -102,17 +104,18 @@ class BertrandEnv():
         # update price history
         self.prices_history.append(action)
         
-        # gather observation
+        # obtain inflation
         inflation = self.get_inflation()
-        past_prices = self.prices_history[-self.k:]
-        past_inflation = self.inflation_history[-self.k:]
+        self.inflation_history.append(inflation)
+        
+        # gather observation
+        inflation = np.array(inflation, ndmin = 2, dtype = 'float32')
+        past_prices = np.array(self.prices_history[-self.k:], dtype = 'float32')
+        past_inflation = np.array(self.inflation_history[-self.k:], ndmin = 2, dtype = 'float32').T
         ob_t1 = (inflation, past_prices, past_inflation)
          
         done = False
         info = None
-        
-        # update history
-        self.inflation_history.append(inflation)
         
         return ob_t1, reward, done, info
     
@@ -125,17 +128,23 @@ class BertrandEnv():
         self.pN = self.get_nash() # get nash price
         self.pM = self.get_monopoly() # get monopoly price
         
-        self.prices_space = gym.spaces.Box(low = self.pN, high = self.pM, shape = (self.k, self.N), dtype = float) # prices space
-        self.inflation_space = gym.spaces.Box(low = 1.5, high = 3.5, shape = (self.k,), dtype = float) # inflation space
+        self.price_high = self.pM * (1 + self.xi)
+        self.price_low = self.pN * (1 - self.xi)
         
-        past_prices = self.prices_space.sample() # init prices
+        self.prices_space = gym.spaces.Box(low = self.price_low, high = self.price_high, shape = (self.k, self.N), dtype = float) # prices space
+        self.inflation_space = gym.spaces.Box(low = 1.5, high = 3.5, shape = (self.v,), dtype = float) # inflation space
+        
+        past_prices = [list(prices) for prices in self.prices_space.sample()] # init prices
         past_inflation = list(self.inflation_space.sample()) # init inflation
         
+        self.prices_history = past_prices # store prices
         self.inflation_history = past_inflation # store inflation
         
         inflation = self.get_inflation() # obtain inflation
         
-        ob_t = (inflation, past_prices, past_inflation)
+        ob_t = (np.array(inflation, ndmin = 2, dtype = 'float32'), 
+                np.array(past_prices, ndmin = 2, dtype = 'float32'), 
+                np.array(past_inflation[-self.k:], ndmin = 2, dtype = 'float32').T)
         
         return ob_t
     
@@ -170,6 +179,12 @@ class BertrandEnv():
             self.pN = self.get_nash() # get nash price
             self.pM = self.get_monopoly() # get monopoly price
             
+            self.price_high = self.pM * (1 + self.xi)
+            self.price_low = self.pN * (1 - self.xi)
+            
             self.inflation_history.append(inflation_t) # store inflation
+            
+        self.nash_history += [self.pN]
+        self.monopoly_history += [self.pM]
             
         return inflation_t
