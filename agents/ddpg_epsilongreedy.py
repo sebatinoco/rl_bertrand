@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
-from torch.distributions import Normal
+from torch.distributions import Normal, Uniform
 from torch.autograd import Variable
 import numpy as np
     
@@ -97,7 +97,8 @@ class QNetwork(nn.Module):
     
     
 class DDPGAgent():
-    def __init__(self, N, actor_lr = 1e-3, Q_lr = 1e-2, gamma = 0.99, tau = 0.9, hidden_size = 256, Q_updates = 1):
+    def __init__(self, N, actor_lr = 1e-3, Q_lr = 1e-2, gamma = 0.99, tau = 0.9, 
+                 hidden_size = 256, Q_updates = 1, epsilon = 0.9, epsilon_decay = 0.99):
         
         # actor and critic
         self.actor = Actor(N + 1, 1, hidden_size)
@@ -121,26 +122,45 @@ class DDPGAgent():
         self.actor_loss = []
         self.Q_loss = []
         
-    def select_action(self, state, action_high, action_low, action_noise = 0.2):
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
         
+    def select_action(self, state, action_high, action_low, epsilon_greedy = True, action_noise = 0.2):
         inflation, past_prices, past_inflation = state
-        
         inflation = torch.tensor(inflation)
         past_prices = torch.tensor(past_prices).unsqueeze(0)
         past_inflation = torch.tensor(past_inflation).unsqueeze(0)
         
         state = (inflation, past_prices, past_inflation)
         
-        action_scale = (action_high - action_low) / 2.0
-        bias = (action_high + action_low) / 2.0
-
-        noise = Normal(0, action_noise * action_high).sample() if action_noise > 0 else torch.zeros(1)
-
         with torch.no_grad():
             action = self.actor(state).squeeze(0)
+            
+            action_scale = (action_high - action_low) / 2.0
+            bias = (action_high + action_low) / 2.0
             action = action * action_scale + bias # scale
+            
+        if epsilon_greedy: # epsilon greedy
+            sample = np.random.random_sample()
+            if sample > self.epsilon:
+                with torch.no_grad():
+                    action = self.actor(state).squeeze(0)
+                    action_scale = (action_high - action_low) / 2.0
+                    bias = (action_high + action_low) / 2.0
+                    action = action * action_scale + bias # scale
+            else:
+                action = Uniform(action_low, action_high).sample()
+                self.epsilon *= self.epsilon_decay
+        else: # gaussian noise
+            with torch.no_grad():
+                action = self.actor(state).squeeze(0)
+                action_scale = (action_high - action_low) / 2.0
+                bias = (action_high + action_low) / 2.0
+                action = action * action_scale + bias # scale
+            noise = Normal(0, action_noise * action_high).sample() if action_noise > 0 else torch.zeros(1)
             action += noise # add noise
-            action = torch.clamp(action, action_low, action_high) # clamp
+        
+        action = torch.clamp(action, action_low, action_high) # clamp
 
         return action.item()
 
@@ -160,9 +180,6 @@ class DDPGAgent():
         reward = torch.tensor(reward).unsqueeze(1)
         state_t1 = (inflation_t1, past_prices_t1, past_inflation_t1)
         done = torch.tensor(done).unsqueeze(dim = 1)
-        
-        # intrinsic rewards
-        #reward = (action - c) * reward
         
         for _ in range(self.Q_updates):
             self.update_Q(state, action, reward, state_t1, done)
@@ -192,7 +209,6 @@ class DDPGAgent():
         
         with torch.no_grad():
             action_t1 = self.actor_target(state_t1) # add clamp?
-            #action_t1 = torch.clamp(action_t1, self.action_low, self.action_high)
             Q_t1 = self.Q_target(state_t1, action_t1)
         
         next_Q = next_Q.float()
