@@ -12,27 +12,24 @@ class Actor(nn.Module):
         
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        #self.action_high = action_high
         
-        self.embedding = nn.Linear(1, hidden_size)
+        self.embedding = nn.Linear(2, hidden_size)
         # input: N x seq_large (k) x features (N)
         self.lstm = nn.LSTM(input_size = input_size, hidden_size = hidden_size, num_layers = num_layers,
                             batch_first = True, dropout = dropout)
         
         self.fc = nn.Linear(hidden_size * 2, output_size)
         
-        #self.action_scale = (action_high - action_low) / 2.0
-        #self.bias = (action_high + action_low) / 2.0
-        
     def forward(self, state):
         
         # unpack
-        inflation, past_prices, past_inflation = state
+        inflation, past_prices, past_inflation, cost = state
         
         history = torch.cat([past_prices, past_inflation], dim = 2)
         
-        # inflation embedding
-        inflation = F.relu(self.embedding(inflation))
+        # inflation + cost embedding
+        numeric = torch.cat([inflation, cost], dim = 1)
+        numeric = F.relu(self.embedding(numeric))
         
         # history lstm
         h_0 = Variable(torch.randn(
@@ -45,15 +42,12 @@ class Actor(nn.Module):
         history = F.relu(history[:, -1, :])
         
         # concatenate
-        x = torch.cat([inflation, history], dim = 1)
+        x = torch.cat([numeric, history], dim = 1)
         
         # output -1 to 1
         x = F.tanh(self.fc(x))
         
         return x
-        
-        # scale output
-        #return x * self.action_scale + self.bias
     
 class QNetwork(nn.Module):
     def __init__(self, input_size, output_size, hidden_size = 256, num_layers = 2, dropout = 0.1):
@@ -62,7 +56,7 @@ class QNetwork(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         
-        self.embedding = nn.Linear(2, hidden_size)
+        self.embedding = nn.Linear(2 + 1, hidden_size)
         # input: N x seq_large (k) x features (N)
         self.lstm = nn.LSTM(input_size = input_size, hidden_size = hidden_size, num_layers = num_layers,
                             batch_first = True, dropout = dropout)
@@ -70,14 +64,13 @@ class QNetwork(nn.Module):
         self.fc = nn.Linear(hidden_size * 2, output_size)
         
     def forward(self, state, action):
-        
         # unpack
-        inflation, past_prices, past_inflation = state
+        inflation, past_prices, past_inflation, cost = state
         
         history = torch.cat([past_prices, past_inflation], dim = 2)
         
         # inflation embedding
-        numeric = torch.cat([inflation, action], dim = 1)
+        numeric = torch.cat([inflation, cost, action], dim = 1)
         numeric = F.relu(self.embedding(numeric))
         
         # history lstm
@@ -126,12 +119,13 @@ class DDPGAgent():
         self.epsilon_decay = epsilon_decay
         
     def select_action(self, state, action_high, action_low, epsilon_greedy = True, action_noise = 0.2):
-        inflation, past_prices, past_inflation = state
+        inflation, past_prices, past_inflation, cost = state
         inflation = torch.tensor(inflation)
         past_prices = torch.tensor(past_prices).unsqueeze(0)
         past_inflation = torch.tensor(past_inflation).unsqueeze(0)
+        cost = torch.tensor(cost)
         
-        state = (inflation, past_prices, past_inflation)
+        state = (inflation, past_prices, past_inflation, cost)
         
         with torch.no_grad():
             action = self.actor(state).squeeze(0)
@@ -170,15 +164,17 @@ class DDPGAgent():
         inflation = torch.tensor(np.array([s[0] for s in state])).squeeze(2)
         past_prices = torch.tensor(np.array([s[1] for s in state]))
         past_inflation = torch.tensor(np.array([s[2] for s in state]))
+        cost = torch.tensor(np.array([s[3] for s in state])).squeeze(2)
         
         inflation_t1 = torch.tensor(np.array([s[0] for s in state_t1])).squeeze(2)
         past_prices_t1 = torch.tensor(np.array([s[1] for s in state_t1]))
         past_inflation_t1 = torch.tensor(np.array([s[2] for s in state_t1]))    
+        cost_t1 = torch.tensor(np.array([s[3] for s in state_t1])).squeeze(2)
         
-        state = (inflation, past_prices, past_inflation)
+        state = (inflation, past_prices, past_inflation, cost)
         action = torch.tensor(action).unsqueeze(1)
         reward = torch.tensor(reward).unsqueeze(1)
-        state_t1 = (inflation_t1, past_prices_t1, past_inflation_t1)
+        state_t1 = (inflation_t1, past_prices_t1, past_inflation_t1, cost_t1)
         done = torch.tensor(done).unsqueeze(dim = 1)
         
         for _ in range(self.Q_updates):

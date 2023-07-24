@@ -8,7 +8,7 @@ from optuna.samplers import TPESampler
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 class BertrandEnv():
-    def __init__(self, N, k, rho, mu = 0.25, a = None, a_0 = 0, a_index = 1, c = 1, v = 3, xi = 0.2):
+    def __init__(self, N, k, rho, mu = 1, a = None, a_0 = 0, a_index = 1, c = 1, v = 3, xi = 0.2):
         
         self.N = N # number of agents
         self.k = k # past periods to observe
@@ -115,7 +115,9 @@ class BertrandEnv():
         inflation = np.array(inflation, ndmin = 2, dtype = 'float32')
         past_prices = np.array(self.prices_history[-self.k:], dtype = 'float32')
         past_inflation = np.array(self.inflation_history[-self.k:], ndmin = 2, dtype = 'float32').T
-        ob_t1 = (inflation, past_prices, past_inflation)
+        c = np.array(self.c, ndmin = 2, dtype = 'float32')
+
+        ob_t1 = (inflation, past_prices, past_inflation, c)
          
         done = False
         info = self.get_metric(reward)
@@ -152,7 +154,8 @@ class BertrandEnv():
         
         ob_t = (np.array(inflation, ndmin = 2, dtype = 'float32'), 
                 np.array(past_prices, ndmin = 2, dtype = 'float32'), 
-                np.array(past_inflation[-self.k:], ndmin = 2, dtype = 'float32').T)
+                np.array(past_inflation[-self.k:], ndmin = 2, dtype = 'float32').T,
+                np.array(self.c, ndmin = 2, dtype = 'float32'))
         
         return ob_t
     

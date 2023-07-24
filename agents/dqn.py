@@ -1,80 +1,122 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import copy
+from torch.autograd import Variable
+from torch.optim import Adam
 import numpy as np
 
-
-class DeepQNetwork(nn.Module):
-
-    def __init__(self, dim_states, dim_actions):
-        super(DeepQNetwork, self).__init__()
-        self._fc1 = nn.Linear(dim_states, 64)
-        self._fc2 = nn.Linear(64, 64)
-        self._fc3 = nn.Linear(64, dim_actions)
-        self._relu = nn.functional.relu
-
-    def forward(self, input):
-        output = self._relu(self._fc1(input))
-        output = self._relu(self._fc2(output))
-        output = self._fc3(output)
-        return output
-
-class DQN:
-    def __init__(self, dim_states, dim_actions, lr, gamma, alpha, device = 'cpu'):
+class DQN(nn.Module):
+    def __init__(self, input_size, output_size, hidden_size = 256, num_layers = 2, dropout = 0.1):
+        super().__init__()
         
-        self._learning_rate = lr
-        self._gamma = gamma
-        self._alpha = alpha
-
-        self._dim_states = dim_states
-        self._dim_actions = dim_actions
-
-        self._deep_qnetwork = DeepQNetwork(self._dim_states, self._dim_actions).to(device)
-        self._target_deepq_network = copy.deepcopy(self._deep_qnetwork)
-
-        self._optimizer = torch.optim.Adam(self._deep_qnetwork.parameters(), lr=self._learning_rate)
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
         
-        self._device = device
+        self.embedding = nn.Linear(1, hidden_size)
+        # input: N x seq_large (k) x features (N)
+        self.lstm = nn.LSTM(input_size = input_size, hidden_size = hidden_size, num_layers = num_layers,
+                            batch_first = True, dropout = dropout)
         
-    def replace_target_network(self):
-        with torch.no_grad():
-            for param, target_param in zip(self._deep_qnetwork.parameters(), 
-                                           self._target_deepq_network.parameters()):
-                target_param.data = param
+        self.fc = nn.Linear(hidden_size * 2, output_size)
+        
+    def forward(self, state):
+        
+        # unpack
+        inflation, past_prices, past_inflation = state
+        
+        history = torch.cat([past_prices, past_inflation], dim = 2)
+        
+        # inflation embedding
+        inflation = F.relu(self.embedding(inflation))
+        
+        # history lstm
+        h_0 = Variable(torch.randn(
+            self.num_layers, history.size(0), self.hidden_size))
+        
+        c_0 = Variable(torch.randn(
+            self.num_layers, history.size(0), self.hidden_size))
+        
+        history, hidden = self.lstm(history, (h_0, c_0))
+        history = F.relu(history[:, -1, :])
+        
+        # concatenate
+        x = torch.cat([inflation, history], dim = 1)
+        
+        # output -1 to 1
+        x = self.fc(x)
+        
+        return x
 
+class DQNAgent():
+    def __init__(self, N, lr = 1e-3, gamma = 0.99, target_steps = 200, hidden_size = 256, epsilon = 0.9, epsilon_decay = 0.99, dim_actions = 15):
+        
+        # N: number of agents (needed to generate network)
+        
+        self.dim_actions = dim_actions
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.target_steps = target_steps
+        self.target_count = 0
+        
+        # instantiate networks
+        self.network = DQN(N + 1, dim_actions, hidden_size)
+        self.target_network = DQN(N + 1, dim_actions, hidden_size)
+        
+        self.target_network.load_state_dict(self.network.state_dict()) # load target network params
+        
+        self.optimizer = Adam(self.network.parameters(), lr = lr) # optimizer
+        
+    def select_action(self, state, action_high, action_low):
 
-    def select_action(self, observation, greedy=False):
+        inflation, past_prices, past_inflation = state
+        inflation = torch.tensor(inflation)
+        past_prices = torch.tensor(past_prices).unsqueeze(0)
+        past_inflation = torch.tensor(past_inflation).unsqueeze(0)
+        
+        state = (inflation, past_prices, past_inflation)
 
-        # Select action greedily
-        with torch.no_grad():
-            action = self._deep_qnetwork(
-                torch.from_numpy(np.array(observation, dtype=np.float32)).to(self._device)
-                ).argmax().cpu().numpy()
-
+        if np.random.random() > self.epsilon:
+            with torch.no_grad():
+                action = torch.argmax(self.network(state), dim = 1).item()
+        else:
+                action = np.random.randint(0, self.dim_actions)
+                self.epsilon *= self.epsilon_decay
+                
         return action
-
-
-    def update(self, experiences_batch):
-
-        s_t_batch, a_t_batch, r_t_batch, s_t1_batch, done_t_batch = experiences_batch # numpy arrays
-
-        s_t_batch = torch.tensor(s_t_batch, device = self._device)
-        a_t_batch = torch.tensor(a_t_batch, device = self._device).unsqueeze(1).long()
-        r_t_batch = torch.tensor(r_t_batch, device = self._device)
-        s_t1_batch = torch.tensor(s_t1_batch, device = self._device)
-        done_t_batch = torch.tensor(done_t_batch, device = self._device)
-
-        with torch.no_grad():
-            target = self._target_deepq_network(s_t1_batch).max(dim = 1).values
-
-        old_Q = self._deep_qnetwork(s_t_batch)
+    
+    def update(self, state, action, reward, state_t1, done):
         
-        y_pred = old_Q.gather(1, a_t_batch).squeeze() 
-        y_target = r_t_batch + self._gamma * target * (1 - done_t_batch)
-
-        loss = F.mse_loss(y_pred, y_target)
-
-        self._optimizer.zero_grad()
-        loss.backward()
-        self._optimizer.step()
+        inflation = torch.tensor(np.array([s[0] for s in state])).squeeze(2)
+        past_prices = torch.tensor(np.array([s[1] for s in state]))
+        past_inflation = torch.tensor(np.array([s[2] for s in state]))
+        
+        inflation_t1 = torch.tensor(np.array([s[0] for s in state_t1])).squeeze(2)
+        past_prices_t1 = torch.tensor(np.array([s[1] for s in state_t1]))
+        past_inflation_t1 = torch.tensor(np.array([s[2] for s in state_t1]))    
+        
+        state = (inflation, past_prices, past_inflation)
+        action = torch.tensor(action, dtype = int).unsqueeze(1)
+        reward = torch.tensor(reward).unsqueeze(1)
+        state_t1 = (inflation_t1, past_prices_t1, past_inflation_t1)
+        done = torch.tensor(done).unsqueeze(dim = 1)
+        
+        self.target_count += 1
+        self.update_network(state, action, reward, state_t1, done)
+        if (self.target_count % self.target_steps) == 0:
+            for param, target_param in zip(self.network.parameters(), self.target_network.parameters()):
+                target_param.data.copy_(param.data)
+        
+    def update_network(self, state, action, reward, state_t1, done):
+        
+        with torch.no_grad():
+            target_max = torch.max(self.target_network(state_t1), dim = 1).values # max of Q values on t1
+            td_target = reward.squeeze() + self.gamma * target_max * (1 - done.squeeze()) # fix the target
+        
+        old_val = self.network(state).gather(1, action).squeeze() # prediction of network
+        
+        Q_loss = F.mse_loss(td_target, old_val)
+        
+        self.optimizer.zero_grad()
+        Q_loss.backward()
+        self.optimizer.step()

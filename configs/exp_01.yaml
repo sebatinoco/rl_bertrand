@@ -1,6 +1,6 @@
-exp_name: exp_00
-model: sac
-use_lstm: False
+exp_name: exp_01
+model: ddpg
+use_lstm: True
 n_actions: 1
 
 env: # environment params

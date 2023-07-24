@@ -1,46 +1,53 @@
-from envs.Bertrand import BertrandEnv
-from envs.BertrandDiff import BertrandDiffEnv
-from agent import QLearning
-from utils.parse_args import parse_args
-from trainer import Trainer
-from utils.plot import plot
-from utils.plot_epsilon import plot_epsilon
+import os
+import yaml
+import torch
+
+from agents.ddpg import DDPGAgent
+from agents.sac import SACAgent
+from agents.dqn import DQNAgent
+
+from envs.BertrandInflation import BertrandEnv
+from replay_buffer import ReplayBuffer
+from utils.run_args import run_args
+from utils.train import train
 
 if __name__ == '__main__':
     
-    # consolidate experiment arguments
-    args = parse_args()
-    args = vars(args)
+    configs = sorted(os.listdir('configs'))
     
-    # envs available
-    envs = {'Bertrand': BertrandEnv, 'BertrandDiff': BertrandDiffEnv}
+    r_args = run_args() 
     
-    # chosen env
-    env = envs[args['env_name']]
+    train_agents = r_args['train_agents']
+    filter_env = r_args['env']
+    filter_config = r_args['filter_config']
+    nb_experiments = r_args['nb_experiments']
+    device = f"cuda:{r_args['gpu']}" if torch.cuda.is_available() else 'cpu'
+    print(f'using {device}!')
     
-    # arguments required by each class
-    env_arguments = env.__init__.__code__.co_varnames
-    trainer_arguments = Trainer.__init__.__code__.co_varnames
-    plot_arguments = plot.__code__.co_varnames
+    models_dict = {'sac': SACAgent, 'ddpg': DDPGAgent, 'dqn': DQNAgent}
     
-    # filter arguments
-    env_args = {arg_name: arg_value for arg_name, arg_value in args.items()
-                if arg_name in env_arguments}
-    trainer_args = {arg_name: arg_value for arg_name, arg_value in args.items()
-                if arg_name in trainer_arguments}
-    plot_args = {arg_name: arg_value for arg_name, arg_value in args.items()
-                if arg_name in plot_arguments}
-    
-    # initialize environment
-    env = env(**env_args)
-    
-    # initialize agents
-    agents = [QLearning(env = env) for agent in range(env.N)]
-    
-    # trainer
-    trainer = Trainer(**trainer_args)
-    trainer.train(env = env, agents = agents, action_space = env.action_space.n)
-    
-    # plot
-    plot(env = env, **plot_args)
-    plot_epsilon(epsilon_list = trainer.epsilon_list, env = env, **plot_args)
+    for experiment_idx in range(nb_experiments):
+        
+        # load config
+        for config in configs:
+            with open(f"configs/{config}", 'r') as file:
+                    args = yaml.safe_load(file)
+
+        # set experiment name
+        exp_name = f"{args['exp_name']}_{experiment_idx}"
+        
+        # load model
+        model = models_dict[args['model']] 
+        
+        # load environment, agent and buffer
+        env = BertrandEnv(**args['env'])      
+        env.reset()
+          
+        dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + env.k + 1
+        dim_actions = args['n_actions']
+        
+        agents = [model(dim_states, dim_actions, env.price_low, env.price_high, **args['agent']) for _ in range(env.N)]
+        buffer = ReplayBuffer(N = env.N, **args['buffer'])
+        
+        # train
+        train(env, agents, buffer, env.N, exp_name = exp_name, **args['train'])
