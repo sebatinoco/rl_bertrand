@@ -130,8 +130,11 @@ class SACAgent:
         self.action_range = [action_low, action_high]
     
     def rescale_action(self, action):
-        return action * (self.action_range[1] - self.action_range[0]) / 2.0 +\
-            (self.action_range[1] + self.action_range[0]) / 2.0
+        
+        scaled_action = action * (self.action_range[1] - self.action_range[0]) / 2.0 + (self.action_range[1] + self.action_range[0]) / 2.0
+        scaled_action = np.exp(scaled_action)
+        
+        return scaled_action
    
     def update(self, states, actions, rewards, next_states, dones):
 

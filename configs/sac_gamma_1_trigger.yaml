@@ -1,5 +1,6 @@
-exp_name: exp_00
+exp_name: sac_gamma_1_trigger
 model: sac
+env_name: linear
 use_lstm: False
 n_actions: 1
 
@@ -11,17 +12,18 @@ env: # environment params
   xi: 0.2
 
 agent: # agent params
-  actor_lr: 0.01
-  Q_lr: 0.01
-  gamma: 0.99
-  tau: 0.001
+  actor_lr: 0.0001
+  Q_lr: 0.0003
+  gamma: 0.9
+  tau: 0.01
   hidden_size: 256
 
 buffer: # buffer params
   sample_size: 512
-  buffer_size: 1_000_000
+  buffer_size: 100_000
 
 train: # train params
-  timesteps: 1000
-  learning_start: 1000
+  timesteps: 100_000
+  inflation_start: 20_000
+  trigger_deviation: True
   update_steps: 1

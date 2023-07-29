@@ -28,8 +28,8 @@ def plot_metrics(fig, axes, prices_history, monopoly_history, nash_history, rewa
       rolling_mean = get_rolling(rewards[:, agent], window_size)
       axes[0, 1].plot(range(rolling_mean.shape[0]), rolling_mean, label = f'Agent {agent}') # plot rolling avg reward
 
-    axes[0, 0].plot(monopoly_history, label = 'Monopoly Price', linestyle = '--')
-    axes[0, 0].plot(nash_history, label = 'Nash Price', linestyle = '--')
+    axes[0, 0].plot(monopoly_history, label = 'Monopoly Price', linestyle = '--', color = 'r')
+    axes[0, 0].plot(nash_history, label = 'Nash Price', linestyle = '--', color = 'g')
     axes[0, 0].set_title(f'Rolling Avg of Prices (window = {window_size})')
     axes[0, 0].set_xlabel('Timesteps')
 

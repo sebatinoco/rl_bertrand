@@ -6,7 +6,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     
     # env arguments
-    parser.add_argument('--env_name', type = str, default = 'BertrandDiff', help = 'environment name to run the experiment')
+    parser.add_argument('--env', type = str, default = 'bertrand', help = 'environment to run the experiment')
     parser.add_argument('--N', type = int, default = 2, help = 'number of agents')
     parser.add_argument('--k', type = int, default = 1, help = 'past periods observed by agents')
     parser.add_argument('--v', type = int, default = 3, help = 'past periods to predict next inflation value')
@@ -29,10 +29,12 @@ def parse_args():
     parser.add_argument('--timesteps', type = int, default = int(2e4), help = 'number of steps')
     parser.add_argument('--learning_start', type = int, default = 100, help = 'steps to start learning')
     parser.add_argument('--update_steps', type = int, default = 1, help = 'steps per update')
-    parser.add_argument('--plot_steps', type = int, default = 200, help = 'steps per update')
+    parser.add_argument('--plot_steps', type = int, default = 50, help = 'steps per update')
     parser.add_argument('--window', type = int, default = 1000, help = 'rolling steps')
     parser.add_argument('--use_lstm', type = lambda x: bool(strtobool(x)), default = False, help = 'enable lstm')
-    parser.add_argument('--n_actions', default = None, help = 'number of actions')
+    parser.add_argument('--n_actions', default = 15, help = 'number of actions', type = int)
+    parser.add_argument('--inflation_start', type = int, default = 20000, help = 'min steps to price changes')
+    parser.add_argument('--trigger_deviation', type = lambda x: bool(strtobool(x)), default = False, help = 'enable deviation')
     #parser.add_argument("--seed", type = int, default = 3380, help = "seed of the experiment")
     
     # plot arguments

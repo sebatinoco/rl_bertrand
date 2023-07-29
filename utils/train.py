@@ -1,13 +1,21 @@
-from tqdm import tqdm
-import pandas as pd
+#from tqdm import tqdm
 from utils.export_results import export_results
+import sys
 
-def train(env, agents, buffer, N, timesteps, learning_start, update_steps, exp_name = 'experiment'):
+def train(env, agents, buffer, N, timesteps, update_steps, inflation_start, trigger_deviation, exp_name = 'experiment'):
 
     ob_t = env.reset()
 
-    for t in tqdm(range(timesteps)):
+    for t in range(timesteps):
         actions = [agent.select_action(ob_t) for agent in agents]    
+        
+        # trigger deviation
+        if (t > timesteps // 2) & (trigger_deviation):
+            actions[0] = env.pN
+        
+        # start changing prices        
+        if t > inflation_start:
+            env.inflation_start = True
         
         ob_t1, rewards, done, info = env.step(actions)
         
@@ -15,13 +23,18 @@ def train(env, agents, buffer, N, timesteps, learning_start, update_steps, exp_n
         
         buffer.store_transition(*experience)
         
-        if (t % update_steps == 0) & (t >= learning_start):
+        if (t % update_steps == 0) & (t >= buffer.sample_size):
             for agent_idx in range(N):
                 agent = agents[agent_idx]
                 sample = buffer.sample(agent_idx)
                 agent.update(*sample)
         
+        sys.stdout.write(f"\rExperiment: {exp_name} \t Training completion: {100 * t/timesteps:.2f} % \t Delta: {info:.2f}")
+        
         ob_t = ob_t1
     
     # export results
-    export_results(env.prices_history[1:], env.monopoly_history, env.nash_history, env.rewards_history, env.metric_history, exp_name)
+    export_results(env.prices_history[env.k:], env.quantities_history,
+                   env.monopoly_history[1:], env.nash_history[1:], 
+                   env.rewards_history, env.metric_history, 
+                   env.costs_history[env.k:], exp_name)
