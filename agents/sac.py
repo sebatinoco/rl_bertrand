@@ -70,7 +70,7 @@ class SACAgent:
     def __init__(self, dim_states, dim_actions, action_low, action_high, hidden_size = 256, gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.action_range = [action_low, action_high]
+        self.action_range = [np.log(action_low), np.log(action_high)]
         self.obs_dim = dim_states
         self.action_dim = dim_actions
 
@@ -130,7 +130,6 @@ class SACAgent:
         self.action_range = [action_low, action_high]
     
     def rescale_action(self, action):
-        
         scaled_action = action * (self.action_range[1] - self.action_range[0]) / 2.0 + (self.action_range[1] + self.action_range[0]) / 2.0
         scaled_action = np.exp(scaled_action)
         

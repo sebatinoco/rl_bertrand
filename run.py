@@ -9,11 +9,13 @@ from agents.sac import SACAgent
 from agents.dqn import DQNAgent
 
 #from envs.BertrandInflation import BertrandEnv
-from envs.BertrandInflation_final import BertrandEnv
+#from envs.BertrandInflation_final import BertrandEnv
+from envs.BertrandInflation_final2 import BertrandEnv
 from envs.LinearBertrandInflation_final import LinearBertrandEnv
 from replay_buffer import ReplayBuffer
 from utils.run_args import run_args
 from utils.train import train
+from utils.get_results import get_results
 
 models_dict = {'sac': SACAgent, 'ddpg': DDPGAgent, 'dqn': DQNAgent}
 envs_dict = {'bertrand': BertrandEnv, 'linear': LinearBertrandEnv}
@@ -63,6 +65,7 @@ if __name__ == '__main__':
             
             # load environment, agent and buffer
             env = envs_dict[args['env_name']]
+            #env = envs_dict['bertrand']
             env = env(**env_args)      
             
             dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + env.k + 1
@@ -81,4 +84,6 @@ if __name__ == '__main__':
             
         execution_time = time.time() - start_time
 
-        print(f'{execution_time:.2f} seconds -- {(execution_time/60):.2f} minutes -- {(execution_time/3600):.2f} hours')
+        print(f'{execution_time:.2f} seconds -- {(execution_time/60):.2f} minutes -- {(execution_time/3600):.2f} hours')  
+    
+    get_results(n_experiments = nb_experiments + 1)

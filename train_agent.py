@@ -10,7 +10,8 @@ import sys
 #from envs.BertrandInflation import BertrandEnv
 #from envs.BertrandInflation_cost import BertrandEnv
 #from envs.SimpleBertrandInflation import BertrandEnv
-from envs.BertrandInflation_final import BertrandEnv
+#from envs.BertrandInflation_final import BertrandEnv
+from envs.BertrandInflation_final2 import BertrandEnv
 from envs.LinearBertrandInflation_final import LinearBertrandEnv
 
 from agents.ddpg import DDPGAgent
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     # limit prices
     expected_shocks = int((args['timesteps'] - args['inflation_start']) * args['rho'])
     print('Expected shocks:', expected_shocks)
-    price_low, price_high = (np.log(env.price_low), np.log(env.price_high * (1.05 ** expected_shocks)))
+    price_low, price_high = (env.price_low, env.price_high * (1.05 ** expected_shocks))
 
     # initiate agents
     model = models_dict[args['model']]
@@ -99,4 +100,5 @@ if __name__ == '__main__':
     export_results(env.prices_history[env.k:], env.quantities_history,
                    env.monopoly_history[1:], env.nash_history[1:], 
                    env.rewards_history, env.metric_history, 
-                   env.costs_history[env.k:], args['exp_name'])
+                   env.pi_N_history[1:], env.pi_M_history[1:],
+                   env.costs_history[env.v+1:], args['exp_name'])

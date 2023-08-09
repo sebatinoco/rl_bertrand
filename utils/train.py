@@ -34,7 +34,14 @@ def train(env, agents, buffer, N, timesteps, update_steps, inflation_start, trig
         ob_t = ob_t1
     
     # export results
+    #export_results(env.prices_history[env.k:], env.quantities_history,
+    #               env.monopoly_history[1:], env.nash_history[1:], 
+    #               env.rewards_history, env.metric_history, 
+    #               #env.pi_N_history, env.pi_M_history,
+    #               env.costs_history[env.k:], exp_name)
+    
     export_results(env.prices_history[env.k:], env.quantities_history,
                    env.monopoly_history[1:], env.nash_history[1:], 
                    env.rewards_history, env.metric_history, 
-                   env.costs_history[env.k:], exp_name)
+                   env.pi_N_history[1:], env.pi_M_history[1:],
+                   env.costs_history[env.v+1:], exp_name)

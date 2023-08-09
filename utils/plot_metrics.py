@@ -14,6 +14,17 @@ def get_rolling(series, window_size):
 
   return rolling_avg
 
+def get_rolling_std(series, window_size):
+    '''
+    Returns the rolling standard deviation using a fixed window_size.
+    '''
+    rolling_mean = get_rolling(series, window_size)
+    squared_diff = (series - rolling_mean) ** 2
+    rolling_variance = get_rolling(squared_diff, window_size)
+    rolling_std = np.sqrt(rolling_variance)
+
+    return rolling_std
+
 def plot_metrics(fig, axes, prices_history, monopoly_history, nash_history, rewards_history, metric_history,
                  window_size = 1000, actor_loss = None, Q_loss = None):
   
@@ -60,3 +71,4 @@ def plot_metrics(fig, axes, prices_history, monopoly_history, nash_history, rewa
     
     fig.tight_layout()
     plt.pause(0.05)
+

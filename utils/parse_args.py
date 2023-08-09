@@ -26,20 +26,20 @@ def parse_args():
     parser.add_argument('--hidden_size', type = int, default = 256, help = 'hidden dim of the agents')
     
     # train arguments
-    parser.add_argument('--timesteps', type = int, default = int(2e4), help = 'number of steps')
+    parser.add_argument('--timesteps', type = int, default = 2000, help = 'number of steps')
     parser.add_argument('--learning_start', type = int, default = 100, help = 'steps to start learning')
     parser.add_argument('--update_steps', type = int, default = 1, help = 'steps per update')
     parser.add_argument('--plot_steps', type = int, default = 50, help = 'steps per update')
     parser.add_argument('--window', type = int, default = 1000, help = 'rolling steps')
     parser.add_argument('--use_lstm', type = lambda x: bool(strtobool(x)), default = False, help = 'enable lstm')
     parser.add_argument('--n_actions', default = 15, help = 'number of actions', type = int)
-    parser.add_argument('--inflation_start', type = int, default = 20000, help = 'min steps to price changes')
+    parser.add_argument('--inflation_start', type = int, default = 1000, help = 'min steps to price changes')
     parser.add_argument('--trigger_deviation', type = lambda x: bool(strtobool(x)), default = False, help = 'enable deviation')
     #parser.add_argument("--seed", type = int, default = 3380, help = "seed of the experiment")
     
     # plot arguments
     parser.add_argument('--plots_dir', type = str, default = 'plots', help = 'folder dir to save plot results')
-    parser.add_argument('--exp_name', type = str, default = 'bertrand', help = 'name of the experiment')
+    parser.add_argument('--exp_name', type = str, default = 'experiment', help = 'name of the experiment')
     parser.add_argument('--window_size', type = int, default = 100, help = 'window size of moving average')
     parser.add_argument('--plot_loss', type = lambda x: bool(strtobool(x)), default = False, help = 'enable plot loss')
     
