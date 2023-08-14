@@ -12,8 +12,8 @@ dict_labels = {
         },
     'N': {
         'base': 'N = 2',
-        'N_1': 'N = 3',
-        'N_2': 'N = 4'  
+        'N_1': 'N = 5',
+        'N_2': 'N = 10'  
     },
     'gamma': {
         'base': '$\gamma$ = 0.99',
@@ -91,7 +91,7 @@ def get_avg_table(n_experiments):
         results['base_diff'] = results['metric'] - avg_dict['sac_base']
         results.sort_values(by = 'base_diff', ascending = False)
         
-        results.to_excel('metrics/tables/{model}.xlsx', index = False)
+        results.to_excel(f'metrics/tables/{model}.xlsx', index = False)
         
 def get_results(n_experiments):
     

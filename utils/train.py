@@ -4,14 +4,16 @@ import sys
 
 def train(env, agents, buffer, N, timesteps, update_steps, inflation_start, trigger_deviation, exp_name = 'experiment'):
 
+    trigger_steps = 0
     ob_t = env.reset()
-
     for t in range(timesteps):
         actions = [agent.select_action(ob_t) for agent in agents]    
         
         # trigger deviation
-        if (t > timesteps // 2) & (trigger_deviation):
-            actions[0] = env.pN
+        if (t > (timesteps * 2) // 3) & (trigger_deviation):
+            if trigger_steps < 1000: 
+                actions[0] = env.pN
+                trigger_steps += 1
         
         # start changing prices        
         if t > inflation_start:
@@ -32,13 +34,6 @@ def train(env, agents, buffer, N, timesteps, update_steps, inflation_start, trig
         sys.stdout.write(f"\rExperiment: {exp_name} \t Training completion: {100 * t/timesteps:.2f} % \t Delta: {info:.2f}")
         
         ob_t = ob_t1
-    
-    # export results
-    #export_results(env.prices_history[env.k:], env.quantities_history,
-    #               env.monopoly_history[1:], env.nash_history[1:], 
-    #               env.rewards_history, env.metric_history, 
-    #               #env.pi_N_history, env.pi_M_history,
-    #               env.costs_history[env.k:], exp_name)
     
     export_results(env.prices_history[env.k:], env.quantities_history,
                    env.monopoly_history[1:], env.nash_history[1:], 

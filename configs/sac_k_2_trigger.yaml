@@ -1,13 +1,13 @@
 exp_name: sac_k_2_trigger
 model: sac
-env_name: linear
+env_name: bertrand
 use_lstm: False
 n_actions: 1
 
 env: # environment params
   N: 2
-  k: 10
-  v: 12
+  k: 25
+  v: 30
   rho: 0.0001
   xi: 0.2
 
@@ -23,7 +23,7 @@ buffer: # buffer params
   buffer_size: 100_000
 
 train: # train params
-  timesteps: 100_000
-  inflation_start: 20_000
+  timesteps: 1_000_000
+  inflation_start: 100_000
   trigger_deviation: True
   update_steps: 1

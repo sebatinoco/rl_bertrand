@@ -5,12 +5,13 @@ import numpy as np
 import time
 
 from agents.ddpg import DDPGAgent
-from agents.sac import SACAgent
+#from agents.sac import SACAgent
+from agents.sac_moving2 import SACAgent
 from agents.dqn import DQNAgent
 
 #from envs.BertrandInflation import BertrandEnv
 #from envs.BertrandInflation_final import BertrandEnv
-from envs.BertrandInflation_final2 import BertrandEnv
+from envs.BertrandInflation_final3 import BertrandEnv
 from envs.LinearBertrandInflation_final import LinearBertrandEnv
 from replay_buffer import ReplayBuffer
 from utils.run_args import run_args
@@ -55,7 +56,7 @@ if __name__ == '__main__':
                 buffer_args = args['buffer']
                 train_args = args['train']
 
-            #train_args['timesteps'] = 1000
+            train_args['timesteps'] = 1000
 
             # set experiment name
             exp_name = f"{args['exp_name']}_{experiment_idx}"
@@ -68,13 +69,14 @@ if __name__ == '__main__':
             #env = envs_dict['bertrand']
             env = env(**env_args)      
             
-            dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + env.k + 1
+            #dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + env.k + 1
+            dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + (env.k + 1) * 2
             dim_actions = args['n_actions'] if args['model'] == 'dqn' else 1
             
             # limit prices
-            expected_shocks = int((train_args['timesteps'] - train_args['inflation_start']) * env_args['rho'])
-            print('\n' + 'Expected shocks:', expected_shocks)
-            price_low, price_high = (np.log(env.price_low), np.log(env.price_high * (1.05 ** expected_shocks)))
+            #expected_shocks = int((train_args['timesteps'] - train_args['inflation_start']) * env_args['rho'])
+            #print('\n' + 'Expected shocks:', expected_shocks)
+            #price_low, price_high = (np.log(env.price_low), np.log(env.price_high * (1.05 ** expected_shocks)))
             
             agents = [model(dim_states, dim_actions, env.price_low, env.price_high, **agent_args) for _ in range(env.N)]
             buffer = ReplayBuffer(N = env.N, **buffer_args)
