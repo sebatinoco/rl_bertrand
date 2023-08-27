@@ -11,12 +11,13 @@ import sys
 #from envs.BertrandInflation_cost import BertrandEnv
 #from envs.SimpleBertrandInflation import BertrandEnv
 #from envs.BertrandInflation_final import BertrandEnv
-from envs.BertrandInflation_final2 import BertrandEnv
-from envs.LinearBertrandInflation_final import LinearBertrandEnv
+from envs.BertrandInflation_final3 import BertrandEnv
+#from envs.LinearBertrandInflation_final import LinearBertrandEnv
+from envs.LinearBertrandInflation_final3 import LinearBertrandEnv
 
 from agents.ddpg import DDPGAgent
 from agents.dqn_linear import DQNAgent # precios no se estan graficando bien
-from agents.sac import SACAgent
+from agents.sac_moving4 import SACAgent
 #from agents.ddpg_cost import DDPGAgent
 
 models_dict = {'sac': SACAgent, 'ddpg': DDPGAgent, 'dqn': DQNAgent}

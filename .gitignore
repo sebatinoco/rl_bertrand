@@ -208,3 +208,7 @@ pyrightconfig.json
 
 # other files
 test.ipynb
+testing_plots.ipynb
+#*.csv
+#*.png
+#*.pdf

@@ -1,6 +1,6 @@
 exp_name: sac_k_1
 model: sac
-env_name: bertrand
+env_name: linear
 use_lstm: False
 n_actions: 1
 
@@ -8,7 +8,7 @@ env: # environment params
   N: 2
   k: 10
   v: 12
-  rho: 0.0001
+  rho: 0.002
   xi: 0.2
 
 agent: # agent params
@@ -23,7 +23,8 @@ buffer: # buffer params
   buffer_size: 100_000
 
 train: # train params
-  timesteps: 1_000_000
-  inflation_start: 100_000
+  episodes: 100
+  timesteps: 10_000
+  inflation_start: 0
   trigger_deviation: False
   update_steps: 1

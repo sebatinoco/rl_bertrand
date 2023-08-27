@@ -5,6 +5,10 @@ from torch.distributions import Normal
 from torch import optim
 import numpy as np
 
+'''
+SAC: observa inflacion, costos, costos pasados, inflacion pasada, precios pasados, media movil
+'''
+
 class SoftQNetwork(nn.Module):
     
     def __init__(self, num_inputs, num_actions, hidden_size=256, init_w=3e-3):
@@ -67,17 +71,18 @@ class PolicyNetwork(nn.Module):
 
 class SACAgent:
   
-    def __init__(self, dim_states, dim_actions, action_low, action_high, moving_dim = 10_000, max_var = 0.2, hidden_size = 256, 
+    def __init__(self, dim_states, dim_actions, moving_dim = 10_000, max_var = 0.2, hidden_size = 256, 
                  gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4, clip = 5):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self.obs_dim = dim_states
         self.action_dim = dim_actions
         
-        self.scaled_history = np.random.uniform(action_low, action_high, moving_dim)
-        self.moving_avg = np.mean(self.scaled_history)
+        #self.scaled_history = np.random.uniform(action_low, action_high, moving_dim)
+        #self.moving_avg = np.mean(self.scaled_history)
         #print('initial moving avg:', self.moving_avg)
         self.idx = 0
+        #self.agent_idx = agent_idx
         
         self.moving_history = []
         self.action_history = []
@@ -118,17 +123,6 @@ class SACAgent:
 
     def select_action(self, state):
         
-        #inflation, past_prices, past_inflation = state
-        inflation, cost, past_prices, past_inflation, past_costs = state
- 
-        inflation = torch.FloatTensor(inflation).flatten()
-        cost = torch.FloatTensor(cost).flatten()
-        past_prices = torch.FloatTensor(past_prices).flatten()
-        past_inflation = torch.FloatTensor(past_inflation).flatten()
-        past_costs = torch.FloatTensor(past_costs).flatten()
-        
-        state = torch.cat([inflation, cost, past_prices, past_inflation, past_costs])
-        
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         mean, log_std = self.policy_net.forward(state)
         std = log_std.exp()
@@ -138,48 +132,26 @@ class SACAgent:
         action = torch.tanh(z)
         action = action.cpu().detach().squeeze(0).numpy()
         
-        return self.rescale_action(action)#.item()
+        #moving_avg = moving_avg[self.agent_idx]
+        
+        return action.item()
     
-    def update_scale(self, action_low, action_high):
-        self.action_range = [action_low, action_high]
+    #def update_scale(self, action_low, action_high):
+    #    self.action_range = [action_low, action_high]
     
-    def rescale_action(self, action):
-        
-        action = action * (self.action_range[1] - self.action_range[0]) / 2.0 + (self.action_range[1] + self.action_range[0]) / 2.0
-        action = action.item()
-        self.action_history += [action]
-        
-        scaled_action = self.moving_avg * (1 + action) if self.moving_avg * (1 + action) > 0.0 else 0.0 # scale action
-        self.scaled_history = np.concatenate((self.scaled_history, [scaled_action]))
-        
-        old_mean = np.mean(self.scaled_history[self.idx:self.idx+self.moving_dim]) 
-        new_mean = np.mean(self.scaled_history[self.idx+1:self.idx+self.moving_dim+1])
-        assert np.isclose(new_mean, old_mean + (self.scaled_history[self.idx+self.moving_dim] - self.scaled_history[self.idx]) / self.moving_dim)
-        
-        self.moving_avg = np.max(new_mean, 0) # update and moving avg always >= 0
-        self.moving_history += [self.moving_avg]
-        
-        self.idx += 1
-        
-        return scaled_action
+    #def rescale_action(self, action, moving_avg):
+    #    
+    #    action = action * (self.action_range[1] - self.action_range[0]) / 2.0 + (self.action_range[1] + self.action_range[0]) / 2.0
+    #    action = action.item()
+    #    self.action_history += [action]
+    #    
+    #    scaled_action = moving_avg * (1 + action) if moving_avg * (1 + action) > 0.0 else 0.0 # scale action
+    #    self.scaled_history = np.concatenate((self.scaled_history, [scaled_action]))
+    #    
+    #    return scaled_action
    
     def update(self, states, actions, rewards, next_states, dones):
 
-        cost = torch.FloatTensor(np.array([s[0] for s in states])).flatten(start_dim = 1)
-        inflation = torch.FloatTensor(np.array([s[1] for s in states])).flatten(start_dim = 1)
-        past_prices = torch.FloatTensor(np.array([s[2] for s in states])).flatten(start_dim = 1)
-        past_inflation = torch.FloatTensor(np.array([s[3] for s in states])).flatten(start_dim = 1)
-        past_costs = torch.FloatTensor(np.array([s[4] for s in states])).flatten(start_dim = 1)
-
-        next_cost = torch.FloatTensor(np.array([s[0] for s in next_states])).flatten(start_dim = 1)
-        next_inflation = torch.FloatTensor(np.array([s[1] for s in next_states])).flatten(start_dim = 1)
-        next_past_prices = torch.FloatTensor(np.array([s[2] for s in next_states])).flatten(start_dim = 1)
-        next_past_inflation = torch.FloatTensor(np.array([s[3] for s in next_states])).flatten(start_dim = 1)
-        next_past_costs = torch.FloatTensor(np.array([s[4] for s in next_states])).flatten(start_dim = 1)
-
-        states = torch.cat([cost, inflation, past_prices, past_inflation, past_costs], dim = 1)
-        next_states = torch.cat([next_cost, next_inflation, next_past_prices, next_past_inflation, next_past_costs], dim = 1)
-        
         # to torch
         states = torch.FloatTensor(states).to(self.device)
         actions = torch.FloatTensor(actions).unsqueeze(1).to(self.device)

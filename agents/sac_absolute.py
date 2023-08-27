@@ -67,19 +67,19 @@ class PolicyNetwork(nn.Module):
 
 class SACAgent:
   
-    def __init__(self, dim_states, dim_actions, action_low, action_high, moving_dim = 10_000, max_var = 0.2, hidden_size = 256, 
+    def __init__(self, dim_states, dim_actions, action_low, action_high, hidden_size = 256, 
                  gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4, clip = 5):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self.obs_dim = dim_states
         self.action_dim = dim_actions
         
-        self.scaled_history = np.random.uniform(action_low, action_high, moving_dim)
-        self.moving_avg = np.mean(self.scaled_history)
+        #self.scaled_history = np.random.uniform(action_low, action_high, moving_dim)
+        #self.moving_avg = np.mean(self.scaled_history)
         #print('initial moving avg:', self.moving_avg)
-        self.idx = 0
+        #self.idx = 0
         
-        self.moving_history = []
+        #self.moving_history = []
         self.action_history = []
 
         # hyperparameters
@@ -87,8 +87,8 @@ class SACAgent:
         self.tau = tau
         self.update_step = 0
         self.delay_step = 2
-        self.moving_dim = moving_dim
-        self.action_range = [-max_var, max_var]
+        #self.moving_dim = moving_dim
+        self.action_range = [action_low, action_high]
         self.clip = clip
         
         # initialize networks 
@@ -149,19 +149,19 @@ class SACAgent:
         action = action.item()
         self.action_history += [action]
         
-        scaled_action = self.moving_avg * (1 + action) if self.moving_avg * (1 + action) > 0.0 else 0.0 # scale action
-        self.scaled_history = np.concatenate((self.scaled_history, [scaled_action]))
+        #scaled_action = self.moving_avg * (1 + action) if self.moving_avg * (1 + action) > 0.0 else 0.0 # scale action
+        #self.scaled_history = np.concatenate((self.scaled_history, [scaled_action]))
         
-        old_mean = np.mean(self.scaled_history[self.idx:self.idx+self.moving_dim]) 
-        new_mean = np.mean(self.scaled_history[self.idx+1:self.idx+self.moving_dim+1])
-        assert np.isclose(new_mean, old_mean + (self.scaled_history[self.idx+self.moving_dim] - self.scaled_history[self.idx]) / self.moving_dim)
+        #old_mean = np.mean(self.scaled_history[self.idx:self.idx+self.moving_dim]) 
+        #new_mean = np.mean(self.scaled_history[self.idx+1:self.idx+self.moving_dim+1])
+        #assert np.isclose(new_mean, old_mean + (self.scaled_history[self.idx+self.moving_dim] - self.scaled_history[self.idx]) / self.moving_dim)
         
-        self.moving_avg = np.max(new_mean, 0) # update and moving avg always >= 0
-        self.moving_history += [self.moving_avg]
+        #self.moving_avg = np.max(new_mean, 0)
+        #self.moving_history += [self.moving_avg]
         
-        self.idx += 1
+        #self.idx += 1
         
-        return scaled_action
+        return action
    
     def update(self, states, actions, rewards, next_states, dones):
 

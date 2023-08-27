@@ -8,7 +8,8 @@ from optuna.samplers import TPESampler
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 class BertrandEnv():
-    def __init__(self, N, k, rho, mu = 0.25, a = None, a_0 = 0, a_index = 1, c = 1, v = 3, xi = 0.2):
+    def __init__(self, N, k, rho, mu = 0.25, a = None, a_0 = 0, a_index = 1, c = 1, v = 3, xi = 0.2,
+                 moving_dim = 1000):
         
         self.N = N # number of agents
         self.k = k # past periods to observe
@@ -19,6 +20,7 @@ class BertrandEnv():
         self.c = c # marginal cost
         self.v = v # length of past inflations to predict current inflation
         self.xi = xi # price limit deflactor
+        self.moving_dim = moving_dim
         
         assert v >= k, 'v must be greater or equal than k'
 
@@ -134,13 +136,21 @@ class BertrandEnv():
         inflation = self.get_inflation()
         self.inflation_history.append(inflation)
         
+        action = np.array(action, ndmin = 2)
+        #scaled_actions = np.maximum(self.moving_avg * (1 + action), 0)
+        self.scaled_history = np.concatenate((self.scaled_history, action), axis = 0)
+        new_mean = np.mean(self.scaled_history[self.idx+1:self.idx+self.moving_dim+1, :], axis = 0)
+        self.moving_avg = np.maximum(new_mean, 0) # update and moving avg always >= 0
+        self.idx += 1
+        
         # gather observation
         inflation = np.array(inflation, ndmin = 2, dtype = 'float32')
         cost = np.array(self.c, ndmin = 2, dtype = 'float32')
         past_prices = np.array(self.prices_history[-self.k:], dtype = 'float32')
         past_inflation = np.array(self.inflation_history[-self.k:], ndmin = 2, dtype = 'float32').T
         past_costs = np.array(self.costs_history[-self.k:], ndmin = 2, dtype = 'float32').T
-        ob_t1 = (inflation, cost, past_prices, past_inflation, past_costs)
+        moving_avg = np.array(self.moving_avg, ndmin = 2, dtype = 'float32')
+        ob_t1 = (inflation, cost, past_prices, past_inflation, past_costs, moving_avg)
          
         done = False
         info = self.get_metric(rewards)
@@ -162,6 +172,10 @@ class BertrandEnv():
         self.prices_history = [list(prices) for prices in self.prices_space.sample()] # init prices
         self.inflation_history = list(self.inflation_space.sample()) # init inflation
         
+        self.scaled_history = np.random.uniform(self.price_low, self.price_high, (self.moving_dim, self.N))
+        self.moving_avg = np.mean(self.scaled_history, axis = 0) # [moving_avg1, moving_avg2, ...]
+        self.idx = 0
+        
         self.costs_history = [self.c]
         for inflation in self.inflation_history[::-1]:
             self.costs_history = [self.costs_history[0] / (1 + inflation)] + self.costs_history
@@ -171,7 +185,8 @@ class BertrandEnv():
             np.array(self.c, ndmin = 2, dtype = 'float32'), 
             np.array(self.prices_history, ndmin = 2, dtype = 'float32'), 
             np.array(self.inflation_history[-self.k:], ndmin = 2, dtype = 'float32').T, 
-            np.array(self.costs_history[-self.k:], ndmin = 2, dtype = 'float32').T
+            np.array(self.costs_history[-self.k:], ndmin = 2, dtype = 'float32').T,
+            np.array(self.moving_avg, ndmin = 2, dtype = 'float32'),
             )
         
         return ob_t

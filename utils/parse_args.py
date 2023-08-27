@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument('--N', type = int, default = 2, help = 'number of agents')
     parser.add_argument('--k', type = int, default = 1, help = 'past periods observed by agents')
     parser.add_argument('--v', type = int, default = 3, help = 'past periods to predict next inflation value')
-    parser.add_argument('--rho', type = float, default = 0.0001, help = 'probability of changing prices')
+    parser.add_argument('--rho', type = float, default = 0.001, help = 'probability of changing prices')
     parser.add_argument('--xi', type = float, default = 0.2, help = 'term to amplify range of actions')
     
     # buffer arguments
@@ -24,8 +24,10 @@ def parse_args():
     parser.add_argument('--gamma', type = float, default = 0.99, help = 'gamma coeff of the agents')
     parser.add_argument('--tau', type = float, default = 0.001, help = 'tau coeff of the agents')
     parser.add_argument('--hidden_size', type = int, default = 256, help = 'hidden dim of the agents')
+    parser.add_argument('--inflation_step', type = int, default = 0, help = 'step to start inflation')
     
     # train arguments
+    parser.add_argument('--episodes', type = int, default = 10, help = 'number of episodes')
     parser.add_argument('--timesteps', type = int, default = 2000, help = 'number of steps')
     parser.add_argument('--learning_start', type = int, default = 100, help = 'steps to start learning')
     parser.add_argument('--update_steps', type = int, default = 1, help = 'steps per update')

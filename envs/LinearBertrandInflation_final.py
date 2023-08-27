@@ -111,7 +111,6 @@ class LinearBertrandEnv():
         prices: Array of prices offered by agents (np.array)
         '''
 
-        prices = prices # exp prices
         p_min = np.min(prices)
         q_min = self.A - p_min * self.e
 

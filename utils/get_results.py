@@ -93,7 +93,7 @@ def get_avg_table(n_experiments):
         
         results.to_excel(f'metrics/tables/{model}.xlsx', index = False)
         
-def get_results(n_experiments):
+def plot_results(n_experiments):
     
     models = set([config.split('_')[0] for config in os.listdir('configs')])
     params = set([config.split('_')[1] for config in os.listdir('configs') if 'base' not in config])
