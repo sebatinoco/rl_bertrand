@@ -59,8 +59,8 @@ if __name__ == '__main__':
                 buffer_args = args['buffer']
                 train_args = args['train']
 
-            train_args['timesteps'] = 500
-            train_args['episodes'] = 1
+            #train_args['timesteps'] = 500
+            #train_args['episodes'] = 1
 
             # set experiment name
             exp_name = f"{args['exp_name']}_{experiment_idx}"
