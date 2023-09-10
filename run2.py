@@ -5,23 +5,14 @@ import numpy as np
 import time
 
 from agents.ddpg import DDPGAgent
-#from agents.sac import SACAgent
-#from agents.sac_moving2 import SACAgent
 from agents.sac_moving4 import SACAgent
 from agents.dqn import DQNAgent
 
-#from envs.BertrandInflation import BertrandEnv
-#from envs.BertrandInflation_final import BertrandEnv
-#from envs.BertrandInflation_final3 import BertrandEnv
 from envs.BertrandInflation_profe import BertrandEnv
-#from envs.LinearBertrandInflation_final import LinearBertrandEnv
-#from envs.LinearBertrandInflation_final3 import LinearBertrandEnv
 from envs.LinearBertrandInflation_profe import LinearBertrandEnv
-#from replay_buffer import ReplayBuffer
 from replay_buffer_final import ReplayBuffer
 from utils.run_args import run_args
 from utils.train import train
-#from utils.get_results import plot_results
 from utils.get_plots import get_plots
 from utils.get_folder_size import get_folder_size
 
@@ -63,8 +54,8 @@ if __name__ == '__main__':
                 buffer_args = args['buffer']
                 train_args = args['train']
 
-            train_args['timesteps'] = 5000
-            train_args['episodes'] = 1
+            #train_args['timesteps'] = 500
+            #train_args['episodes'] = 1
 
             # set experiment name
             exp_name = f"{args['env_name']}_{args['exp_name']}_{experiment_idx}"
@@ -76,10 +67,7 @@ if __name__ == '__main__':
             env = envs_dict[args['env_name']]
             #env = envs_dict['bertrand']
             env = env(**env_args, timesteps = train_args['timesteps'])      
-            
-            #dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + env.k + 1
-            #dim_states = env.N + 1 if args['use_lstm'] else env.k * env.N + (env.k + 1) * 2
-            #dim_states = (env.N * env.k) + (env.k + 1 ) * 2 + env.N
+
             dim_states = (env.N * env.k) + env.k + 1
             dim_actions = args['n_actions'] if args['model'] == 'dqn' else 1
             
@@ -94,7 +82,7 @@ if __name__ == '__main__':
         print('\n' + f'{execution_time:.2f} seconds -- {(execution_time/60):.2f} minutes -- {(execution_time/3600):.2f} hours')  
     
     # filter metrics data
-    metrics = [metric for metric in os.listdir('metrics') if ('.csv' in metric) & ('experiment' not in metric)]
+    metrics = [metric.replace('.csv', '') for metric in os.listdir('metrics') if ('.csv' in metric) & ('experiment' not in metric)]
     
     # plot
     for metric in metrics:

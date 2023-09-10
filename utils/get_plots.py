@@ -26,10 +26,10 @@ def get_rolling_std(series, window_size):
 
     return rolling_std
 
-def get_plots(exp_name, window_size = 50):
+def get_plots(exp_name, window_size = 1000):
 
     ###########################################
-    df_plot = pd.read_csv('metrics/' + exp_name, sep = ';', encoding = 'utf-8-sig')
+    df_plot = pd.read_csv(f'metrics/{exp_name}.csv', sep = ';', encoding = 'utf-8-sig')
     
     actions_cols = [col for col in df_plot.columns if 'actions' in col]
     price_cols = [col for col in df_plot.columns if 'prices' in col]
