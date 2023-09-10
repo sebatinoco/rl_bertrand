@@ -29,7 +29,7 @@ class Scaler:
         return (obs - mean) / (std + 1e-8)
 
 class LinearBertrandEnv():
-    def __init__(self, N, k, rho, timesteps, A = 3, e = 1, c = 1, v = 3, xi = 0.2, inflation_step = 5000, use_moving_avg = False, moving_dim = 1000, max_var = 0.2):
+    def __init__(self, N, k, rho, timesteps, A = 3, e = 1, c = 1, v = 3, xi = 0.2, inflation_start = 5000, use_moving_avg = False, moving_dim = 1000, max_var = 0.2):
         
         self.N = N # number of agents
         self.k = k # past periods to observe
@@ -41,7 +41,7 @@ class LinearBertrandEnv():
         self.use_moving_avg = use_moving_avg
         self.max_var = max_var # max variation (moving avg)
         self.timesteps = timesteps # total steps per episode
-        self.inflation_step = inflation_step # steps to begin with inflation
+        self.inflation_start = inflation_start # steps to begin with inflation
         
         assert v >= k, 'v must be greater or equal than k'
         
@@ -133,8 +133,8 @@ class LinearBertrandEnv():
         ob_t1 = self.obs_scaler.transform(ob_t1)
          
         self.timestep += 1
-        if self.timestep > self.inflation_step:
-            self.inflation_start = True
+        if self.timestep > self.inflation_start:
+            self.gen_inflation = True
          
         done = False if self.timestep < self.timesteps else True
         info = self.get_metric(reward)
@@ -175,7 +175,7 @@ class LinearBertrandEnv():
         self.price_low = self.pN * (1 - self.xi)
         
         # limit prices
-        expected_shocks = int((self.timesteps - self.inflation_step) * self.rho)
+        expected_shocks = int((self.timesteps - self.inflation_start) * self.rho)
         expected_shocks = np.max([0, expected_shocks])
         #print('\n' + 'Expected shocks:', expected_shocks)
         
@@ -196,7 +196,7 @@ class LinearBertrandEnv():
         '''
         
         # reset parameters
-        self.inflation_start = False
+        self.gen_inflation = False
         self.A_t = self.A
         self.c_t = self.c
         self.timestep = 0
@@ -260,7 +260,7 @@ class LinearBertrandEnv():
         sample = np.random.rand()
         
         inflation_t = 0
-        if (sample < self.rho) & (self.inflation_start):
+        if (sample < self.rho) & (self.gen_inflation):
             
             with torch.no_grad():
                 inflation_values = np.array(self.inflation_history) # transform to array

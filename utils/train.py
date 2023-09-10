@@ -1,5 +1,3 @@
-#from tqdm import tqdm
-from utils.export_results import export_results
 import sys
 import numpy as np
 import pandas as pd
@@ -8,10 +6,15 @@ def train(env, agents, buffer, N, episodes, timesteps, update_steps, inflation_s
     
     prices_history = np.zeros((episodes, timesteps, N))
     actions_history = np.zeros((episodes, timesteps, N))
+    costs_history = np.zeros((episodes, timesteps))
     monopoly_history = np.zeros((episodes, timesteps))
     nash_history = np.zeros((episodes, timesteps))
     rewards_history = np.zeros((episodes, timesteps, N))
-    metric_history = np.zeros((episodes, timesteps))
+    delta_history = np.zeros((episodes, timesteps))
+    quantities_history = np.zeros((episodes, timesteps, N))
+    pi_N_history = np.zeros((episodes, timesteps))
+    pi_M_history = np.zeros((episodes, timesteps))
+    A_history = np.zeros((episodes, timesteps))
     
     for episode in range(episodes):
         trigger_steps = 0
@@ -41,34 +44,45 @@ def train(env, agents, buffer, N, episodes, timesteps, update_steps, inflation_s
             
             ob_t = ob_t1
         
-        #export_results(env.prices_history[env.k:], env.quantities_history,
-        #            env.monopoly_history[1:], env.nash_history[1:], 
-        #            env.rewards_history, env.metric_history, 
-        #            env.pi_N_history[1:], env.pi_M_history[1:],
-        #            env.costs_history[env.v+1:], exp_name)
-        
-        prices_history[episode] = np.array(env.prices_history)[env.k:]
-        monopoly_history[episode] = np.array(env.monopoly_history)
-        nash_history[episode] = np.array(env.nash_history)
-        rewards_history[episode] = np.array(env.rewards_history)
-        metric_history[episode] = np.array(env.metric_history)
+        # store episode metrics
+        prices_history[episode] = np.array(env.prices_history)[-timesteps:]
+        actions_history[episode] = np.array(env.action_history)[-timesteps:]
+        costs_history[episode] = np.array(env.costs_history)[-timesteps:]
+        monopoly_history[episode] = np.array(env.monopoly_history)[-timesteps:]
+        nash_history[episode] = np.array(env.nash_history)[-timesteps:]
+        rewards_history[episode] = np.array(env.rewards_history)[-timesteps:]
+        delta_history[episode] = np.array(env.metric_history)[-timesteps:]
+        quantities_history[episode] = np.array(env.quantities_history)[-timesteps:]
+        pi_N_history[episode] = np.array(env.pi_N_history)[-timesteps:]
+        pi_M_history[episode] = np.array(env.pi_M_history)[-timesteps:]
+        A_history[episode] = np.array(env.A_history)[-timesteps:]
     
     # export   
     prices_history = np.mean(prices_history, axis = 0)
     actions_history = np.mean(actions_history, axis = 0)
+    costs_history = np.mean(costs_history, axis = 0)
     monopoly_history = np.mean(monopoly_history, axis = 0)
     nash_history = np.mean(nash_history, axis = 0)
     rewards_history = np.mean(rewards_history, axis = 0)
-    metric_history = np.mean(metric_history, axis = 0)
-    
-    results = pd.DataFrame({'monopoly': monopoly_history,
-                        'nash': nash_history,
-                        'metric': metric_history
-                        })
+    delta_history = np.mean(delta_history, axis = 0)
+    quantities_history = np.mean(quantities_history, axis = 0)
+    pi_N_history = np.mean(pi_N_history, axis = 0)
+    pi_M_history = np.mean(pi_M_history, axis = 0)
+    A_history = np.mean(A_history, axis = 0) # equal disposition to pay
+        
+    results = pd.DataFrame({'costs': costs_history,
+                            'pi_N': pi_N_history,
+                            'pi_M': pi_M_history,
+                            'delta': delta_history,
+                            'p_nash': nash_history,
+                            'p_monopoly': monopoly_history,
+                            'A': A_history,
+                            })
 
     for agent in range(env.N):
-        results[f'prices_{agent}'] = prices_history[:, agent]
         results[f'actions_{agent}'] = actions_history[:, agent]
+        results[f'prices_{agent}'] = prices_history[:, agent]
+        results[f'quantities_{agent}'] = quantities_history[:, agent]
         results[f'rewards_{agent}'] = rewards_history[:, agent]
         
-    results.to_csv(f'metrics/{exp_name}.csv')
+    results.to_csv(f'metrics/{exp_name}.csv', index = False, sep = ';', encoding = 'utf-8-sig')
