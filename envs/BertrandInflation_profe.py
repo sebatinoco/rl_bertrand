@@ -34,7 +34,7 @@ class Scaler:
 
 class BertrandEnv():
     def __init__(self, N, k, rho, timesteps, mu = 0.5, a_0 = 0, A = 2, c = 1, v = 3, xi = 0.2, 
-                 inflation_start = 0, use_moving_avg = False, max_var = 0.2):
+                 inflation_start = 0, use_moving_avg = True, max_var = 2.0):
         
         self.N = N # number of agents
         self.k = k # past periods to observe
@@ -210,10 +210,10 @@ class BertrandEnv():
         self.expected_shocks = expected_shocks
         self.shocks = 0
         
-        if self.use_moving_avg:
+        if self.use_moving_avg: # estoy usando esta via!!
             self.action_range = [-self.max_var, self.max_var]
         else:
-            self.action_range = [self.price_low, self.price_high]
+            #self.action_range = [self.price_low, self.price_high]
             self.action_range = [-3, 3]
     
     def reset(self):

@@ -30,7 +30,7 @@ class Scaler:
 
 class LinearBertrandEnv():
     def __init__(self, N, k, rho, timesteps, A = 3, e = 1, c = 1, v = 3, xi = 0.2, 
-                 inflation_start = 0, use_moving_avg = False, moving_dim = 1000, max_var = 0.2):
+                 inflation_start = 0, use_moving_avg = True, moving_dim = 1000, max_var = 2.0):
         
         self.N = N # number of agents
         self.k = k # past periods to observe

@@ -26,7 +26,7 @@ def get_rolling_std(series, window_size):
 
     return rolling_std
 
-def get_plots(exp_name, window_size = 1000):
+def get_plots(exp_name, window_size = 500):
 
     ###########################################
     df_plot = pd.read_csv(f'metrics/{exp_name}.csv', sep = ';', encoding = 'utf-8-sig')
@@ -58,7 +58,7 @@ def get_plots(exp_name, window_size = 1000):
     plt.xlabel('Timesteps')
     plt.ylabel('Prices')
     plt.legend()
-    plt.savefig(f'figures/agg_experiments/{exp_name}_prices.pdf')
+    plt.savefig(f'figures/{exp_name}_prices.pdf')
     plt.close()
     
     ############################################
@@ -69,7 +69,7 @@ def get_plots(exp_name, window_size = 1000):
     plt.xlabel('Timesteps')
     plt.ylabel('Prices')
     plt.legend()
-    plt.savefig(f'figures/agg_experiments/{exp_name}_avg_prices.pdf')
+    plt.savefig(f'figures/{exp_name}_avg_prices.pdf')
     plt.close()
     
     ############################################
@@ -80,7 +80,7 @@ def get_plots(exp_name, window_size = 1000):
     plt.xlabel('Timesteps')
     plt.ylabel('Profits')
     plt.legend()
-    plt.savefig(f'figures/agg_experiments/{exp_name}_rewards.pdf')
+    plt.savefig(f'figures/{exp_name}_rewards.pdf')
     plt.close()
     
     ############################################
@@ -91,5 +91,5 @@ def get_plots(exp_name, window_size = 1000):
     plt.xlabel('Timesteps')
     plt.ylabel('Delta')
     plt.legend()
-    plt.savefig(f'figures/agg_experiments/{exp_name}_delta.pdf')
+    plt.savefig(f'figures/{exp_name}_delta.pdf')
     plt.close()

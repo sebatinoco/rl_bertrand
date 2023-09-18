@@ -15,6 +15,7 @@ from utils.run_args import run_args
 from utils.train import train
 from utils.get_plots import get_plots
 from utils.get_folder_size import get_folder_size
+from utils.get_comparison import get_comparison
 
 models_dict = {'sac': SACAgent, 'ddpg': DDPGAgent, 'dqn': DQNAgent}
 envs_dict = {'bertrand': BertrandEnv, 'linear': LinearBertrandEnv}
@@ -54,8 +55,8 @@ if __name__ == '__main__':
                 buffer_args = args['buffer']
                 train_args = args['train']
 
-            #train_args['timesteps'] = 500
-            #train_args['episodes'] = 1
+            train_args['timesteps'] = 500
+            train_args['episodes'] = 1
 
             # set experiment name
             exp_name = f"{args['env_name']}_{args['exp_name']}_{experiment_idx}"
@@ -87,6 +88,8 @@ if __name__ == '__main__':
     # plot
     for metric in metrics:
         get_plots(metric)
+        
+    get_comparison()
         
     folder_size_mb = get_folder_size('./metrics')
     print(f"Metrics folder size: {folder_size_mb:.2f} MB")

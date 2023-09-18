@@ -78,13 +78,9 @@ class SACAgent:
         self.obs_dim = dim_states
         self.action_dim = dim_actions
         
-        #self.scaled_history = np.random.uniform(action_low, action_high, moving_dim)
-        #self.moving_avg = np.mean(self.scaled_history)
-        #print('initial moving avg:', self.moving_avg)
-        self.idx = 0
-        #self.agent_idx = agent_idx
-        
-        self.moving_history = []
+        self.mean_history = []
+        self.std_history = []
+        self.alpha_history = []
         self.action_history = []
 
         # hyperparameters
@@ -127,6 +123,10 @@ class SACAgent:
         mean, log_std = self.policy_net.forward(state)
         std = log_std.exp()
         
+        self.mean_history += [mean.item()]
+        self.std_history += [std.item()]
+        self.alpha_history += [self.alpha.item() if type(self.alpha) == torch.Tensor else self.alpha]
+        
         normal = Normal(mean, std)
         z = normal.sample()
         action = torch.tanh(z)
@@ -135,20 +135,6 @@ class SACAgent:
         #moving_avg = moving_avg[self.agent_idx]
         
         return action.item()
-    
-    #def update_scale(self, action_low, action_high):
-    #    self.action_range = [action_low, action_high]
-    
-    #def rescale_action(self, action, moving_avg):
-    #    
-    #    action = action * (self.action_range[1] - self.action_range[0]) / 2.0 + (self.action_range[1] + self.action_range[0]) / 2.0
-    #    action = action.item()
-    #    self.action_history += [action]
-    #    
-    #    scaled_action = moving_avg * (1 + action) if moving_avg * (1 + action) > 0.0 else 0.0 # scale action
-    #    self.scaled_history = np.concatenate((self.scaled_history, [scaled_action]))
-    #    
-    #    return scaled_action
    
     def update(self, states, actions, rewards, next_states, dones):
 
