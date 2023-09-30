@@ -162,12 +162,12 @@ class SACAgent:
         # update q networks        
         self.q1_optimizer.zero_grad()
         q1_loss.backward()
-        nn.utils.clip_grad_norm_(self.q_net1.parameters(), self.clip)
+        #nn.utils.clip_grad_norm_(self.q_net1.parameters(), self.clip)
         self.q1_optimizer.step()
         
         self.q2_optimizer.zero_grad()
         q2_loss.backward()
-        nn.utils.clip_grad_norm_(self.q_net2.parameters(), self.clip)
+        #nn.utils.clip_grad_norm_(self.q_net2.parameters(), self.clip)
         self.q2_optimizer.step()
         
         # delayed update for policy network and target q networks -- UPDATE ACTOR
@@ -181,7 +181,7 @@ class SACAgent:
             
             self.policy_optimizer.zero_grad()
             policy_loss.backward()
-            nn.utils.clip_grad_norm_(self.policy_net.parameters(), self.clip)
+            #nn.utils.clip_grad_norm_(self.policy_net.parameters(), self.clip)
             self.policy_optimizer.step()
         
             # target networks

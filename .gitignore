@@ -206,9 +206,16 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# relela results
+relela_results
+
 # other files
 test.ipynb
 testing_plots.ipynb
+reward_distribution.pdf
+plot.ipynb
+test.csv
+plot.png
 #*.csv
 #*.png
 #*.pdf

@@ -30,6 +30,8 @@ def get_plots(exp_name, window_size = 500):
 
     ###########################################
     df_plot = pd.read_csv(f'metrics/{exp_name}.csv', sep = ';', encoding = 'utf-8-sig')
+    df_avg = pd.DataFrame()
+    df_std = pd.DataFrame()
     
     actions_cols = [col for col in df_plot.columns if 'actions' in col]
     price_cols = [col for col in df_plot.columns if 'prices' in col]
@@ -46,13 +48,16 @@ def get_plots(exp_name, window_size = 500):
 
     window_cols = price_cols + rewards_cols + quantities_cols + avg_cols + ['delta']
     for col in window_cols:
-        df_plot[col] = get_rolling(df_plot[col], window_size = window_size)
+        df_avg[col] = get_rolling(df_plot[col], window_size = window_size)
+        df_std[col] = get_rolling_std(df_plot[col], window_size = window_size)
+        
+    series_size = df_avg.shape[0]
         
     ############################################
     plt.figure(figsize = (12, 4))
     for agent in range(n_agents):
-        price_serie = df_plot[f'prices_{agent}']
-        plt.plot(price_serie, label = f'Agent {agent}')
+        serie = f'prices_{agent}'
+        plt.errorbar(range(series_size), df_avg[serie], df_std[serie], errorevery=int(0.01 * series_size), label = f'Agent {agent}')
     plt.plot(df_plot['p_monopoly'], color = 'red', label = 'Monopoly price')
     plt.plot(df_plot['p_nash'], color = 'green', label = 'Nash price')
     plt.xlabel('Timesteps')
@@ -63,7 +68,7 @@ def get_plots(exp_name, window_size = 500):
     
     ############################################
     plt.figure(figsize = (12, 4))
-    plt.plot(df_plot['avg_prices'], label = 'Average prices')
+    plt.errorbar(range(series_size), df_avg['avg_prices'], df_std['avg_prices'], errorevery=int(0.01 * series_size), label = f'Average prices')
     plt.plot(df_plot['p_monopoly'], color = 'red', label = 'Monopoly price')
     plt.plot(df_plot['p_nash'], color = 'green', label = 'Nash price')
     plt.xlabel('Timesteps')
@@ -74,7 +79,7 @@ def get_plots(exp_name, window_size = 500):
     
     ############################################
     plt.figure(figsize = (12, 4))
-    plt.plot(df_plot['avg_rewards'], label = 'Average profits')
+    plt.errorbar(range(series_size), df_avg['avg_rewards'], df_std['avg_rewards'], errorevery=int(0.01 * series_size), label = f'Average profits')
     plt.plot(df_plot['pi_N'], label = 'Nash profits', color = 'green')
     plt.plot(df_plot['pi_M'], label = 'Monopoly profits', color = 'red')
     plt.xlabel('Timesteps')
@@ -85,7 +90,7 @@ def get_plots(exp_name, window_size = 500):
     
     ############################################
     plt.figure(figsize = (12, 4))
-    plt.plot(df_plot['delta'], label = 'Average profits')
+    plt.errorbar(range(series_size), df_avg['delta'], df_std['delta'], errorevery=int(0.01 * series_size), label = f'Average profits')
     plt.axhline(1, color = 'red', label = 'Nash profits')
     plt.axhline(0, color = 'green', label = 'Monoply profits')
     plt.xlabel('Timesteps')

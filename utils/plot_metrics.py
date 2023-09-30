@@ -17,8 +17,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 def get_rolling(series, window_size):
   
-  series = pd.DataFrame(series)
+  '''
+  Returns the rolling average of actions using a fixed window_size.
+  '''
   
+  series = pd.Series(series)
   rolling_avg = series.rolling(window_size).mean()
   
   return rolling_avg
@@ -27,10 +30,13 @@ def get_rolling_std(series, window_size):
     '''
     Returns the rolling standard deviation using a fixed window_size.
     '''
-    rolling_mean = get_rolling(series, window_size)
-    squared_diff = (series - rolling_mean) ** 2
-    rolling_variance = get_rolling(squared_diff, window_size)
-    rolling_std = np.sqrt(rolling_variance)
+    #rolling_mean = get_rolling(series, window_size)
+    #squared_diff = (series - rolling_mean) ** 2
+    #rolling_variance = get_rolling(squared_diff, window_size)
+    #rolling_std = np.sqrt(rolling_variance)
+    
+    series = pd.Series(series)
+    rolling_std = series.rolling(window_size).std()
 
     return rolling_std
 

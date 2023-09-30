@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import yaml
-from utils.get_plots import get_rolling
+from utils.get_plots import get_rolling, get_rolling_std
 
 def get_label(file, parameter):
     if 'deviate' in file:
@@ -43,8 +43,12 @@ def get_comparison(window_size = 1000):
                 plt.figure(figsize = (12, 4))
                 for file in final_metrics:
                     delta_serie = pd.read_csv('metrics/' + file, sep = ';')['delta']#[-10000:]
-                    delta_serie = get_rolling(delta_serie, window_size)
-                    plt.plot(delta_serie, label = get_label(file, parameter))
+                    #delta_serie = get_rolling(delta_serie, window_size)
+                    delta_avg = get_rolling(delta_serie, window_size)
+                    delta_std = get_rolling_std(delta_serie, window_size)
+                    series_size = len(delta_avg)
+                    plt.errorbar(range(series_size), delta_avg, delta_std, errorevery=int(0.01 * series_size), label = get_label(file, parameter))
+                    #plt.plot(delta_serie, label = get_label(file, parameter))
                 plt.plot([1 for i in range(delta_serie.shape[0])], label = 'Monopoly profits', color = 'red')
                 plt.plot([0 for i in range(delta_serie.shape[0])], label = 'Nash profits', color = 'green')
                 #plt.axhline(1, label = 'Monopoly profits', color = 'red')
