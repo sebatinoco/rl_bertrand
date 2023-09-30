@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-def train(env, agents, buffer, N, episodes, timesteps, update_steps, inflation_start, trigger_deviation, exp_name = 'experiment'):
+def train(env, agents, buffer, N, episodes, timesteps, update_steps, trigger_deviation, deviate_start, deviate_end, exp_name = 'experiment'):
     
     prices_history = np.zeros((episodes, timesteps, N))
     actions_history = np.zeros((episodes, timesteps, N))
@@ -17,16 +17,16 @@ def train(env, agents, buffer, N, episodes, timesteps, update_steps, inflation_s
     A_history = np.zeros((episodes, timesteps))
     
     for episode in range(episodes):
-        trigger_steps = 0
         ob_t = env.reset()
         for t in range(timesteps):
             actions = [agent.select_action(ob_t) for agent in agents]    
             
-            # trigger deviation
-            if (t > (timesteps * 2) // 3) & (trigger_deviation):
-                if trigger_steps < 1000: 
-                    actions[0] = env.pN
-                    trigger_steps += 1
+            if trigger_deviation:
+                if (t/timesteps > deviate_start) and (t/timesteps <= deviate_end):
+                    env.trigger_deviation = True
+                
+                elif t/timesteps > deviate_end:
+                    env.trigger_deviation = False
             
             ob_t1, rewards, done, info = env.step(actions)
             

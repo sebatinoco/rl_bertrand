@@ -5,6 +5,10 @@ from torch.distributions import Normal
 from torch import optim
 import numpy as np
 
+'''
+SAC: observa inflacion, costos, costos pasados, inflacion pasada, precios pasados, media movil
+'''
+
 class SoftQNetwork(nn.Module):
     
     def __init__(self, num_inputs, num_actions, hidden_size=256, init_w=3e-3):
@@ -67,18 +71,26 @@ class PolicyNetwork(nn.Module):
 
 class SACAgent:
   
-    def __init__(self, dim_states, dim_actions, action_low, action_high, hidden_size = 256, gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4):
+    def __init__(self, dim_states, dim_actions, moving_dim = 10_000, max_var = 0.2, hidden_size = 256, 
+                 gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4, clip = 5):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.action_range = [np.log(action_low), np.log(action_high)]
         self.obs_dim = dim_states
         self.action_dim = dim_actions
+        
+        self.mean_history = []
+        self.std_history = []
+        self.alpha_history = []
+        self.action_history = []
 
         # hyperparameters
         self.gamma = gamma
         self.tau = tau
         self.update_step = 0
         self.delay_step = 2
+        self.moving_dim = moving_dim
+        self.action_range = [-max_var, max_var]
+        self.clip = clip
         
         # initialize networks 
         self.q_net1 = SoftQNetwork(self.obs_dim, self.action_dim, hidden_size).to(self.device)
@@ -107,47 +119,25 @@ class SACAgent:
 
     def select_action(self, state):
         
-        inflation, past_prices, past_inflation = state
- 
-        inflation = torch.FloatTensor(inflation).flatten()
-        past_prices = torch.FloatTensor(past_prices).flatten()
-        past_inflation = torch.FloatTensor(past_inflation).flatten()
-        
-        state = torch.cat([inflation, past_prices, past_inflation])
-        
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         mean, log_std = self.policy_net.forward(state)
         std = log_std.exp()
+        
+        self.mean_history += [mean.item()]
+        self.std_history += [std.item()]
+        self.alpha_history += [self.alpha.item() if type(self.alpha) == torch.Tensor else self.alpha]
         
         normal = Normal(mean, std)
         z = normal.sample()
         action = torch.tanh(z)
         action = action.cpu().detach().squeeze(0).numpy()
         
-        return self.rescale_action(action).item()
-    
-    def update_scale(self, action_low, action_high):
-        self.action_range = [action_low, action_high]
-    
-    def rescale_action(self, action):
-        scaled_action = action * (self.action_range[1] - self.action_range[0]) / 2.0 + (self.action_range[1] + self.action_range[0]) / 2.0
-        scaled_action = np.exp(scaled_action)
+        #moving_avg = moving_avg[self.agent_idx]
         
-        return scaled_action
+        return action.item()
    
     def update(self, states, actions, rewards, next_states, dones):
 
-        inflation = torch.FloatTensor(np.array([s[0] for s in states])).flatten(start_dim = 1)
-        past_prices = torch.FloatTensor(np.array([s[1] for s in states])).flatten(start_dim = 1)
-        past_inflation = torch.FloatTensor(np.array([s[2] for s in states])).flatten(start_dim = 1)
-
-        next_inflation = torch.FloatTensor(np.array([s[0] for s in next_states])).flatten(start_dim = 1)
-        next_past_prices = torch.FloatTensor(np.array([s[1] for s in next_states])).flatten(start_dim = 1)
-        next_past_inflation = torch.FloatTensor(np.array([s[2] for s in next_states])).flatten(start_dim = 1)
-
-        states = torch.cat([inflation, past_prices, past_inflation], dim = 1)
-        next_states = torch.cat([next_inflation, next_past_prices, next_past_inflation], dim = 1)
-        
         # to torch
         states = torch.FloatTensor(states).to(self.device)
         actions = torch.FloatTensor(actions).unsqueeze(1).to(self.device)
@@ -172,10 +162,12 @@ class SACAgent:
         # update q networks        
         self.q1_optimizer.zero_grad()
         q1_loss.backward()
+        nn.utils.clip_grad_norm_(self.q_net1.parameters(), self.clip)
         self.q1_optimizer.step()
         
         self.q2_optimizer.zero_grad()
         q2_loss.backward()
+        nn.utils.clip_grad_norm_(self.q_net2.parameters(), self.clip)
         self.q2_optimizer.step()
         
         # delayed update for policy network and target q networks -- UPDATE ACTOR
@@ -189,6 +181,7 @@ class SACAgent:
             
             self.policy_optimizer.zero_grad()
             policy_loss.backward()
+            nn.utils.clip_grad_norm_(self.policy_net.parameters(), self.clip)
             self.policy_optimizer.step()
         
             # target networks

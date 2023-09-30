@@ -1,17 +1,26 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+#def get_rolling(series, window_size):
+#  
+#  '''
+#  Returns the rolling average of actions using a fixed window_size.
+#  '''
+#
+#  rolling_avg = np.convolve(series, np.ones(window_size)/window_size, mode = 'valid')
+
+#  fill = np.full([window_size - 1], np.nan)
+#  rolling_avg = np.concatenate((fill, rolling_avg))
+
+#  return rolling_avg
+
+import pandas as pd
 def get_rolling(series, window_size):
   
-  '''
-  Returns the rolling average of actions using a fixed window_size.
-  '''
-
-  rolling_avg = np.convolve(series, np.ones(window_size)/window_size, mode = 'valid')
-
-  fill = np.full([window_size - 1], np.nan)
-  rolling_avg = np.concatenate((fill, rolling_avg))
-
+  series = pd.DataFrame(series)
+  
+  rolling_avg = series.rolling(window_size).mean()
+  
   return rolling_avg
 
 def get_rolling_std(series, window_size):

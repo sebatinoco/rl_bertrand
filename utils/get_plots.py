@@ -58,7 +58,7 @@ def get_plots(exp_name, window_size = 500):
     plt.xlabel('Timesteps')
     plt.ylabel('Prices')
     plt.legend()
-    plt.savefig(f'figures/{exp_name}_prices.pdf')
+    plt.savefig(f'figures/simple_experiments/{exp_name}_prices.pdf')
     plt.close()
     
     ############################################
@@ -69,7 +69,7 @@ def get_plots(exp_name, window_size = 500):
     plt.xlabel('Timesteps')
     plt.ylabel('Prices')
     plt.legend()
-    plt.savefig(f'figures/{exp_name}_avg_prices.pdf')
+    plt.savefig(f'figures/simple_experiments/{exp_name}_avg_prices.pdf')
     plt.close()
     
     ############################################
@@ -80,7 +80,7 @@ def get_plots(exp_name, window_size = 500):
     plt.xlabel('Timesteps')
     plt.ylabel('Profits')
     plt.legend()
-    plt.savefig(f'figures/{exp_name}_rewards.pdf')
+    plt.savefig(f'figures/simple_experiments/{exp_name}_rewards.pdf')
     plt.close()
     
     ############################################
@@ -91,5 +91,5 @@ def get_plots(exp_name, window_size = 500):
     plt.xlabel('Timesteps')
     plt.ylabel('Delta')
     plt.legend()
-    plt.savefig(f'figures/{exp_name}_delta.pdf')
+    plt.savefig(f'figures/simple_experiments/{exp_name}_delta.pdf')
     plt.close()

@@ -5,7 +5,8 @@ import yaml
 from utils.get_plots import get_rolling
 
 def get_label(file, parameter):
-    
+    if 'deviate' in file:
+        file = file.replace('_deviate', '')    
     base = file.split('.')[0][:-2]
     with open(f"configs/{base}.yaml") as config:
         data = yaml.safe_load(config)
@@ -20,7 +21,7 @@ def get_label(file, parameter):
     
     return label
 
-def get_comparison(window_size = 300):
+def get_comparison(window_size = 1000):
 
     metrics = os.listdir('metrics/')
 
@@ -30,17 +31,26 @@ def get_comparison(window_size = 300):
         env_metrics = [metric for metric in metrics if env in metric]
         for parameter in parameters:
             parameter_metrics = sorted([metric for metric in env_metrics if parameter in metric or 'base' in metric])
-            plt.figure(figsize = (12, 4))
-            for file in parameter_metrics:
-                delta_serie = pd.read_csv('metrics/' + file, sep = ';')['delta']#[-10000:]
-                delta_serie = get_rolling(delta_serie, window_size)
-                plt.plot(delta_serie, label = get_label(file, parameter))
-            plt.plot([1 for i in range(delta_serie.shape[0])], label = 'Monopoly profits', color = 'red')
-            plt.plot([0 for i in range(delta_serie.shape[0])], label = 'Nash profits', color = 'green')
-            #plt.axhline(1, label = 'Monopoly profits', color = 'red')
-            #plt.axhline(0, label = 'Nash profits', color = 'green')
-            plt.xlabel('Timesteps')
-            plt.ylabel('Delta')
-            plt.legend()
-            plt.savefig(f'figures/agg_experiments/{env}_{parameter}.pdf')
-            plt.close()
+            for deviate in [True, False]:
+                trigger_name = ''
+                if deviate:
+                    trigger_name = '_deviate'
+                if deviate:
+                    final_metrics = sorted([metric for metric in parameter_metrics if 'deviate' in metric])
+                else:
+                    final_metrics = sorted([metric for metric in parameter_metrics if 'deviate' not in metric or 
+                                            ('base' in metric and 'deviate' not in metric)])
+                plt.figure(figsize = (12, 4))
+                for file in final_metrics:
+                    delta_serie = pd.read_csv('metrics/' + file, sep = ';')['delta']#[-10000:]
+                    delta_serie = get_rolling(delta_serie, window_size)
+                    plt.plot(delta_serie, label = get_label(file, parameter))
+                plt.plot([1 for i in range(delta_serie.shape[0])], label = 'Monopoly profits', color = 'red')
+                plt.plot([0 for i in range(delta_serie.shape[0])], label = 'Nash profits', color = 'green')
+                #plt.axhline(1, label = 'Monopoly profits', color = 'red')
+                #plt.axhline(0, label = 'Nash profits', color = 'green')
+                plt.xlabel('Timesteps')
+                plt.ylabel('Delta')
+                plt.legend()
+                plt.savefig(f'figures/agg_experiments/{env}_{parameter}' + trigger_name + '.pdf')
+                plt.close()

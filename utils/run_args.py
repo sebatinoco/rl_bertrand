@@ -11,6 +11,7 @@ def run_args():
     parser.add_argument('--gpu', default = 0, type = int, help = 'gpu to run the experiments')
     parser.add_argument('--nb_experiments', default = 1, type = int, help = 'number of experiments per config')
     parser.add_argument('--train_agents', default = True, type=lambda x: bool(strtobool(x)), help = 'bool to execute training if wanted')
+    parser.add_argument('--window_size', default = 1000, type = int, help = 'window size to plot')
     
     # consolidate args
     args = parser.parse_args()

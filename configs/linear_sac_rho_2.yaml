@@ -10,6 +10,7 @@ env: # environment params
   v: 3
   rho: 0.0005
   xi: 0.2
+  inflation_start: 0
 
 agent: # agent params
   actor_lr: 0.0001
@@ -25,6 +26,6 @@ buffer: # buffer params
 train: # train params
   episodes: 1
   timesteps: 100_000
-  inflation_start: 0
-  trigger_deviation: False
   update_steps: 1
+  deviate_start: 0.85
+  deviate_end: 0.95
