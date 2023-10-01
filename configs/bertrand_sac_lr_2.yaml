@@ -13,8 +13,9 @@ env: # environment params
   inflation_start: 0
 
 agent: # agent params
-  actor_lr: 0.005
-  Q_lr: 0.0003
+  actor_lr: 0.01
+  Q_lr: 0.01
+  alpha_lr: 0.01
   gamma: 0.95
   tau: 0.01
   hidden_size: 256
@@ -25,7 +26,7 @@ buffer: # buffer params
 
 train: # train params
   episodes: 1
-  timesteps: 100_000
+  timesteps: 200_000
   update_steps: 1
   deviate_start: 0.85
   deviate_end: 0.95
