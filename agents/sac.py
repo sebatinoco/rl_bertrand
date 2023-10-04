@@ -72,7 +72,8 @@ class PolicyNetwork(nn.Module):
 class SACAgent:
   
     def __init__(self, dim_states, dim_actions, moving_dim = 10_000, max_var = 0.2, hidden_size = 256, 
-                 gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4, clip = 5):
+                 gamma = 0.99, tau = 0.01, alpha = 0.2, Q_lr = 3e-4, actor_lr = 3e-4, alpha_lr = 3e-4, clip = 5,
+                 beta = 1e-4, use_epsilon_greedy = False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self.obs_dim = dim_states
@@ -91,6 +92,8 @@ class SACAgent:
         self.moving_dim = moving_dim
         self.action_range = [-max_var, max_var]
         self.clip = clip
+        self.beta = beta
+        self.use_epsilon_greedy = use_epsilon_greedy
         
         # initialize networks 
         self.q_net1 = SoftQNetwork(self.obs_dim, self.action_dim, hidden_size).to(self.device)
@@ -129,10 +132,12 @@ class SACAgent:
         
         normal = Normal(mean, std)
         z = normal.sample()
+
+        if self.use_epsilon_greedy:
+            z = self.epsilon_greedy(z, mean)
+            
         action = torch.tanh(z)
         action = action.cpu().detach().squeeze(0).numpy()
-        
-        #moving_avg = moving_avg[self.agent_idx]
         
         return action.item()
    
@@ -200,3 +205,13 @@ class SACAgent:
         self.alpha = self.log_alpha.exp()
 
         self.update_step += 1
+        
+    def epsilon_greedy(self, z, mean):
+        
+        random_number = np.random.rand()
+        epsilon = np.exp(-self.beta * self.update_step)
+        
+        if random_number > epsilon:
+            return mean
+        else:
+            return z

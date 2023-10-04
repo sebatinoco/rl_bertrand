@@ -48,10 +48,12 @@ if __name__ == '__main__':
             start_time = time.time()
             # load config
             for config in configs:
-                for trigger_deviation in [True, False]:
+                for trigger_deviation in [True, False, 'altruist']:
                     trigger_name = ''
-                    if trigger_deviation:
+                    if trigger_deviation == True:
                         trigger_name = '_deviate'
+                    elif trigger_deviation == 'altruistic':
+                        trigger_name = '_altruist'
                     
                     with open(f"configs/{config}", 'r') as file:
                         args = yaml.safe_load(file)
@@ -81,7 +83,10 @@ if __name__ == '__main__':
                     buffer = ReplayBuffer(dim_states = dim_states, N = env.N, **buffer_args)
                     
                     # train
-                    train(env, agents, buffer, env.N, exp_name = exp_name, trigger_deviation = trigger_deviation, **train_args)
+                    try:
+                        train(env, agents, buffer, env.N, exp_name = exp_name, trigger_deviation = trigger_deviation, **train_args)
+                    except:
+                        pass
                 
             execution_time = time.time() - start_time
 

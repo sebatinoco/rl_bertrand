@@ -51,6 +51,7 @@ class BertrandEnv():
         self.moving_dim = int(1 / rho)
         self.max_var = max_var
         self.trigger_deviation = False
+        self.altruist = False
         
         assert v >= k, 'v must be greater or equal than k'
         
@@ -123,6 +124,9 @@ class BertrandEnv():
         action = [self.rescale_action(action[idx], idx) for idx in range(len(action))]    
         
         if self.trigger_deviation:
+            action[0] = self.pN
+            
+        if self.altruist:
             action[0] = self.pN
         
         # compute quantities

@@ -1,213 +1,155 @@
+import numpy as np
 import torch
+import torch.optim as optim
+import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim import Adam
-from torch.distributions import Normal, Uniform
-from torch.autograd import Variable
-import numpy as np
+
+class OUNoise(object):
+    def __init__(self, action_space, mu=0.0, theta=0.15, max_sigma=0.3, min_sigma=0.3, decay_period=100000):
+        self.mu           = mu
+        self.theta        = theta
+        self.sigma        = max_sigma
+        self.max_sigma    = max_sigma
+        self.min_sigma    = min_sigma
+        self.decay_period = decay_period
+        self.action_dim   = action_space.shape[0]
+        self.low          = action_space.low
+        self.high         = action_space.high
+        self.reset()
+        
+    def reset(self):
+        self.state = np.ones(self.action_dim) * self.mu
+        
+    def evolve_state(self):
+        x  = self.state
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(self.action_dim)
+        self.state = x + dx
+        return self.state
     
+    def get_action(self, action, t=0):
+        ou_state = self.evolve_state()
+        self.sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(1.0, t / self.decay_period)
+        return np.clip(action + ou_state, self.low, self.high)
+
+class Critic(nn.Module):
+
+    def __init__(self, obs_dim, action_dim):
+        super(Critic, self).__init__()
+
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+
+        self.linear1 = nn.Linear(self.obs_dim, 1024)
+        self.linear2 = nn.Linear(1024 + self.action_dim, 512)
+        self.linear3 = nn.Linear(512, 300)
+        self.linear4 = nn.Linear(300, 1)
+
+    def forward(self, x, a):
+        x = F.relu(self.linear1(x))
+        xa_cat = torch.cat([x,a], 1)
+        xa = F.relu(self.linear2(xa_cat))
+        xa = F.relu(self.linear3(xa))
+        qval = self.linear4(xa)
+
+        return qval
+
 class Actor(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size = 256, num_layers = 2, dropout = 0.1):
-        super().__init__()
-        
-        self.num_layers = num_layers
-        self.hidden_size = hidden_size
-        #self.action_high = action_high
-        
-        self.embedding = nn.Linear(1, hidden_size)
-        # input: N x seq_large (k) x features (N)
-        self.lstm = nn.LSTM(input_size = input_size, hidden_size = hidden_size, num_layers = num_layers,
-                            batch_first = True, dropout = dropout)
-        
-        self.fc = nn.Linear(hidden_size * 2, output_size)
-        
-    def forward(self, state):
-        
-        # unpack
-        inflation, past_prices, past_inflation = state
-        
-        history = torch.cat([past_prices, past_inflation], dim = 2)
-        
-        # inflation embedding
-        inflation = F.relu(self.embedding(inflation))
-        
-        # history lstm
-        h_0 = Variable(torch.randn(
-            self.num_layers, history.size(0), self.hidden_size))
-        
-        c_0 = Variable(torch.randn(
-            self.num_layers, history.size(0), self.hidden_size))
-        
-        history, hidden = self.lstm(history, (h_0, c_0))
-        history = F.relu(history[:, -1, :])
-        
-        # concatenate
-        x = torch.cat([inflation, history], dim = 1)
-        
-        # output -1 to 1
-        x = F.tanh(self.fc(x))
-        
+
+    def __init__(self, obs_dim, action_dim):
+        super(Actor, self).__init__()
+
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+
+        self.linear1 = nn.Linear(self.obs_dim, 512)
+        self.linear2 = nn.Linear(512, 128)
+        self.linear3 = nn.Linear(128, self.action_dim)
+
+    def forward(self, obs):
+        x = F.relu(self.linear1(obs))
+        x = F.relu(self.linear2(x))
+        x = torch.tanh(self.linear3(x))
+
         return x
+
+
+class DDPGAgent:
     
-class QNetwork(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size = 256, num_layers = 2, dropout = 0.1):
-        super().__init__()
+    def __init__(self, dim_states, dim_actions, gamma = 0.99, tau = 1e-2, actor_lr = 1e-3, Q_lr = 1e-3):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.num_layers = num_layers
-        self.hidden_size = hidden_size
+        self.obs_dim = dim_states
+        self.action_dim = dim_actions
         
-        self.embedding = nn.Linear(2, hidden_size)
-        # input: N x seq_large (k) x features (N)
-        self.lstm = nn.LSTM(input_size = input_size, hidden_size = hidden_size, num_layers = num_layers,
-                            batch_first = True, dropout = dropout)
-        
-        self.fc = nn.Linear(hidden_size * 2, output_size)
-        
-    def forward(self, state, action):
-        
-        # unpack
-        inflation, past_prices, past_inflation = state
-        
-        history = torch.cat([past_prices, past_inflation], dim = 2)
-        
-        # inflation embedding
-        numeric = torch.cat([inflation, action], dim = 1)
-        numeric = F.relu(self.embedding(numeric))
-        
-        # history lstm
-        h_0 = Variable(torch.zeros(
-            self.num_layers, history.size(0), self.hidden_size))
-        
-        c_0 = Variable(torch.zeros(
-            self.num_layers, history.size(0), self.hidden_size))
-        
-        history, hidden = self.lstm(history, (h_0, c_0))
-        history = F.relu(history[:, -1, :])
-        
-        # concatenate
-        x = torch.cat([numeric, history], dim = 1)
-        
-        return self.fc(x) 
-    
-    
-class DDPGAgent():
-    def __init__(self, dim_states, dim_actions, action_low, action_high, actor_lr = 1e-3, Q_lr = 1e-2, gamma = 0.99, tau = 0.9, 
-                 hidden_size = 256, Q_updates = 1, epsilon = 0.9, epsilon_decay = 0.99):
-        
-        # actor and critic
-        self.actor = Actor(dim_states, dim_actions, hidden_size)
-        self.Q = QNetwork(dim_states, dim_actions, hidden_size)
-        
-        # actor and critic targets
-        self.actor_target = Actor(dim_states, dim_actions, hidden_size)
-        self.Q_target = QNetwork(dim_states, dim_actions, hidden_size)
-        
-        self.actor_target.load_state_dict(self.actor.state_dict())
-        self.Q_target.load_state_dict(self.Q.state_dict())
-        
-        # optimizers
-        self.actor_optimizer = Adam(self.actor.parameters(), lr = actor_lr)
-        self.Q_optimizer = Adam(self.Q.parameters(), lr = Q_lr)
-        
+        # hyperparameters
         self.gamma = gamma
         self.tau = tau
-        self.Q_updates = Q_updates
         
-        self.actor_loss = []
-        self.Q_loss = []
+        # initialize actor and critic networks
+        self.critic = Critic(self.obs_dim, self.action_dim).to(self.device)
+        self.critic_target = Critic(self.obs_dim, self.action_dim).to(self.device)
         
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
+        self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
+        self.actor_target = Actor(self.obs_dim, self.action_dim).to(self.device)
+    
+        # Copy critic target parameters
+        for target_param, param in zip(self.critic_target.parameters(), self.critic.parameters()):
+            target_param.data.copy_(param.data)
         
-        self.action_low = action_low
-        self.action_high = action_high
-        self.action_scale = (action_high - action_low) / 2.0
-        self.bias = (action_high + action_low) / 2.0
+        # optimizers
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=Q_lr)
+        self.actor_optimizer  = optim.Adam(self.actor.parameters(), lr=actor_lr)
+    
+        #self.noise = OUNoise(self.env.action_space) # refactor
         
-    def select_action(self, state, epsilon_greedy = True, action_noise = 0.2):
-        inflation, past_prices, past_inflation = state
-        inflation = torch.tensor(inflation)
-        past_prices = torch.tensor(past_prices).unsqueeze(0)
-        past_inflation = torch.tensor(past_inflation).unsqueeze(0)
-        
-        state = (inflation, past_prices, past_inflation)
-        
-        with torch.no_grad():
-            action = self.actor(state).squeeze(0)
-            action = action * self.action_scale + self.bias # scale
-            
-        if epsilon_greedy: # epsilon greedy
-            sample = np.random.random_sample()
-            if sample > self.epsilon:
-                with torch.no_grad():
-                    action = self.actor(state).squeeze(0)
-                    action = action * self.action_scale + self.bias # scale
-            else:
-                action = Uniform(self.action_low, self.action_high).sample()
-                self.epsilon *= self.epsilon_decay
-        else: # gaussian noise
-            with torch.no_grad():
-                action = self.actor(state).squeeze(0)
-                action = action * self.action_scale + self.bias # scale
-            noise = Normal(0, action_noise * self.action_high).sample() if action_noise > 0 else torch.zeros(1)
-            action += noise # add noise
-        
-        action = torch.clamp(action, self.action_low, self.action_high) # clamp
+    def select_action(self, state):
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        action = self.actor.forward(state)
+        action = action.squeeze(0).cpu().detach().numpy()
 
         return action.item()
+    
+    def update(self, states, actions, rewards, next_states, dones):
+        
+        # to torch
+        states = torch.FloatTensor(states).to(self.device)
+        actions = torch.FloatTensor(actions).unsqueeze(1).to(self.device)
+        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device)
+        next_states = torch.FloatTensor(next_states).to(self.device)
+        dones = torch.FloatTensor(dones).to(self.device)
+        dones = dones.view(dones.size(0), -1)
+        
+        #states, actions, rewards, next_states, _ = self.replay_buffer.sample(batch_size) # refactor
+        #state_batch, action_batch, reward_batch, next_state_batch, masks = self.replay_buffer.sample(batch_size) # refactor
+        #state_batch = torch.FloatTensor(state_batch).to(self.device)
+        #action_batch = torch.FloatTensor(action_batch).to(self.device)
+        ##next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)
+        #reward_batch = torch.FloatTensor(reward_batch).to(self.device)
+        #masks = torch.FloatTensor(masks).to(self.device)
+   
+        curr_Q = self.critic.forward(states, actions)
+        next_actions = self.actor_target.forward(next_states)
+        next_Q = self.critic_target.forward(next_states, next_actions.detach())
+        expected_Q = rewards + self.gamma * next_Q
+        
+        # update critic
+        q_loss = F.mse_loss(curr_Q, expected_Q.detach())
 
-    
-    def update(self, state, action, reward, state_t1, done):
-        
-        inflation = torch.tensor(np.array([s[0] for s in state])).squeeze(2)
-        past_prices = torch.tensor(np.array([s[1] for s in state]))
-        past_inflation = torch.tensor(np.array([s[2] for s in state]))
-        
-        inflation_t1 = torch.tensor(np.array([s[0] for s in state_t1])).squeeze(2)
-        past_prices_t1 = torch.tensor(np.array([s[1] for s in state_t1]))
-        past_inflation_t1 = torch.tensor(np.array([s[2] for s in state_t1]))    
-        
-        state = (inflation, past_prices, past_inflation)
-        action = torch.tensor(action).unsqueeze(1)
-        reward = torch.tensor(reward).unsqueeze(1)
-        state_t1 = (inflation_t1, past_prices_t1, past_inflation_t1)
-        done = torch.tensor(done).unsqueeze(dim = 1)
-        
-        for _ in range(self.Q_updates):
-            self.update_Q(state, action, reward, state_t1, done)
-        
-        self.update_actor(state)
-        
-        # update the target networks
-        for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-        for param, target_param in zip(self.Q.parameters(), self.Q_target.parameters()):
-            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-    
-    def update_actor(self, state):
-        
-        action = self.actor(state) # add clamp?
-        actor_loss = -self.Q(state, action).mean() 
+        self.critic_optimizer.zero_grad()
+        q_loss.backward() 
+        self.critic_optimizer.step()
+
+        # update actor
+        policy_loss = -self.critic.forward(states, self.actor.forward(states)).mean()
         
         self.actor_optimizer.zero_grad()
-        actor_loss.backward()
+        policy_loss.backward()
         self.actor_optimizer.step()
-        
-        self.actor_loss.append(actor_loss.item())
-    
-    def update_Q(self, state, action, reward, state_t1, done):
-        
-        next_Q = reward + self.Q(state, action) * (1 - done) * self.gamma
-        
-        with torch.no_grad():
-            action_t1 = self.actor_target(state_t1) # add clamp?
-            Q_t1 = self.Q_target(state_t1, action_t1)
-        
-        next_Q = next_Q.float()
-        Q_loss = F.mse_loss(next_Q, Q_t1)
-        
-        self.Q_optimizer.zero_grad()
-        Q_loss.backward()
-        self.Q_optimizer.step()
-        
-        self.Q_loss.append(Q_loss.item())
+
+        # update target networks 
+        for target_param, param in zip(self.actor_target.parameters(), self.actor.parameters()):
+            target_param.data.copy_(param.data * self.tau + target_param.data * (1.0 - self.tau))
+       
+        for target_param, param in zip(self.critic_target.parameters(), self.critic.parameters()):
+            target_param.data.copy_(param.data * self.tau + target_param.data * (1.0 - self.tau))

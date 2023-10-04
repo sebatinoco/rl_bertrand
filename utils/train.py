@@ -21,12 +21,15 @@ def train(env, agents, buffer, N, episodes, timesteps, update_steps, trigger_dev
         for t in range(timesteps):
             actions = [agent.select_action(ob_t) for agent in agents]    
             
-            if trigger_deviation:
+            if trigger_deviation == True:
                 if (t/timesteps > deviate_start) and (t/timesteps <= deviate_end):
                     env.trigger_deviation = True
                 
                 elif t/timesteps > deviate_end:
                     env.trigger_deviation = False
+            
+            elif trigger_deviation == 'altruist':
+                env.altruist = True
             
             ob_t1, rewards, done, info = env.step(actions)
             
